@@ -1,0 +1,52 @@
+{
+  "name": "@deepseek-ai/dsh-client-ui-db-settings",
+  "version": "0.0.1",
+  "description": "Database connection settings UI for DSH",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc && tsdown",
+    "bundle": "tsdown",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@deepseek-ai/cordis": "workspace:*"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-client-connection": "workspace:*",
+    "@deepseek-ai/dsh-client-runtime": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-settings-plugins": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-slots": "workspace:*",
+    "@types/react": "~18.3.1",
+    "react": "^19.1.0",
+    "tsdown": "^0.12.7",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.1"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "workspace:*",
+    "react": "^19.1.0"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web"
+    }
+  }
+}

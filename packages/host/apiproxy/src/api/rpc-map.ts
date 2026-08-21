@@ -15,6 +15,7 @@ import type { CredentialsApi } from './credentials.ts'
 import type { LlmApi } from './llm.ts'
 import type { SubagentsApi } from './subagents.ts'
 import type { RpcResponse } from './rpc.ts'
+import type { DbApi } from './db.ts'
 
 /**
  * Method name → method signature. Signatures are the single source of truth; payload/value
@@ -22,6 +23,7 @@ import type { RpcResponse } from './rpc.ts'
  * request (command.execute): the carrier passes its request signal, never a wire field.
  */
 export interface RpcMethodMap {
+  'db.testConnection': DbApi['testConnection']
   'session.list': SessionsApi['list']
   'session.search': SessionsApi['search']
   'session.create': SessionsApi['create']

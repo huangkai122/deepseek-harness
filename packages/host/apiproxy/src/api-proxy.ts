@@ -42,6 +42,8 @@ import type {
   QueuedInboxItem, SessionSummary, SettingsNamespaceView, SubagentAddress, JobView, ToolEventView,
   WorkspaceId, WorkspaceView,
 } from './api/index.ts'
+import type { DbConnectionConfig } from '@deepseek-ai/dsh-db-connector/types'
+import type {} from '@deepseek-ai/dsh-db-connector'
 import {
   DEFAULT_SESSION_LOG_COMPRESSION_LEVEL,
   flushLiveSessionLog,
@@ -3653,6 +3655,23 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       claimQuestion(pending, 'answered')
       pending.resolve(payload.answer)
       return Promise.resolve({ accepted: true })
+    },
+
+    db: {
+      async testConnection(request) {
+        const db = ctx.get('db')
+        if (db === undefined) {
+          return err(request, { code: 'internal', message: 'database connector service is absent', details: {} })
+        }
+        try {
+          return ok(request, await db.testConnection(request.payload.config as DbConnectionConfig))
+        } catch (error: unknown) {
+          return ok(request, {
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          })
+        }
+      },
     },
   }
 }

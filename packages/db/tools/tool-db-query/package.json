@@ -1,0 +1,37 @@
+{
+  "name": "@deepseek-ai/dsh-tool-db-query",
+  "version": "0.0.1",
+  "description": "Database query tool for DSH",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc && tsdown",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@deepseek-ai/cordis": "workspace:*",
+    "@deepseek-ai/dsh-db-connector": "workspace:*",
+    "@deepseek-ai/dsh-tools": "workspace:*"
+  },
+  "devDependencies": {
+    "tsdown": "^0.12.7",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.1"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "workspace:*"
+  }
+}

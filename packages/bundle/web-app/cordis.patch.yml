@@ -100,6 +100,19 @@
     - id: plugin-inventory
       name: '@deepseek-ai/dsh-host-plugin-inventory'
 
+    # Database connector service and providers.
+    - id: db-connector
+      name: '@deepseek-ai/dsh-db-connector'
+
+    - id: db-mysql
+      name: '@deepseek-ai/dsh-db-mysql'
+
+    - id: db-postgresql
+      name: '@deepseek-ai/dsh-db-postgresql'
+
+    - id: db-redis
+      name: '@deepseek-ai/dsh-db-redis'
+
     # The API gateway: the transport-agnostic dispatch face every client shape
     # shares. The base layer's agent-default-model service owns the default model.
     - id: api-gateway
@@ -287,6 +300,10 @@
     - id: ui-settings-plugins
       name: '@deepseek-ai/dsh-client-ui-settings-plugins'
 
+    # Database connection settings card in Plugins settings.
+    - id: ui-db-settings
+      name: '@deepseek-ai/dsh-client-ui-db-settings'
+
     # Plan control: the composer plan seat over the plan projection + /plan channel.
     - id: ui-plan
       name: '@deepseek-ai/dsh-client-ui-plan'
@@ -429,6 +446,13 @@
   disabled: true
 
 - id: tool-web
+  disabled: true
+
+# Database query and execute tools (available in agent presets).
+- id: tool-db-query
+  disabled: true
+
+- id: tool-db-execute
   disabled: true
 
 # The preset roster. `config/agent-presets/` ships with the deployment and is

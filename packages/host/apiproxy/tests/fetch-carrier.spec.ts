@@ -16,6 +16,11 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
     }
   }
   return {
+    db: {
+      async testConnection(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { success: false, error: 'stub' } } }
+      },
+    },
     sessions: {
       async list(request) {
         if (overrides.crashOn === 'session.list') throw new Error('impl crashed')

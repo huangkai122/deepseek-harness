@@ -1,0 +1,39 @@
+{
+  "name": "@deepseek-ai/dsh-db-connector",
+  "version": "0.0.1",
+  "description": "Database connector service definition for DSH",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./types": {
+      "types": "./lib/types/types.d.ts",
+      "import": "./lib/types.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc && tsdown",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@deepseek-ai/cordis": "workspace:*"
+  },
+  "devDependencies": {
+    "tsdown": "^0.12.7",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.1"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "workspace:*"
+  }
+}

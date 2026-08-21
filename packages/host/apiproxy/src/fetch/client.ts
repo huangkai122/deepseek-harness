@@ -67,6 +67,7 @@ import {
   subagentListValueSchema,
   subagentPromptValueSchema,
 } from '../api/subagents.schema.ts'
+import { dbTestConnectionValueSchema } from '../api/db.schema.ts'
 
 /**
  * Client consumption face of the contract (shape a): same domain tree as ApiProxy, but unary
@@ -85,6 +86,9 @@ import {
  * Derived per method key from RpcMethodMap so a map row addition updates this mechanically.
  */
 export interface IApiClient {
+  db: {
+    testConnection(payload: RequestPayload<'db.testConnection'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'db.testConnection'>>>
+  }
   sessions: {
     list(payload: RequestPayload<'session.list'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'session.list'>>>
     search(payload: RequestPayload<'session.search'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'session.search'>>>
@@ -170,6 +174,7 @@ export interface IApiClient {
  * mirror of the handler's request table; key coverage compiler-enforced against RpcMethodMap).
  */
 const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseValue<K>>> } = {
+  'db.testConnection': dbTestConnectionValueSchema,
   'session.list': sessionListValueSchema,
   'session.search': sessionSearchValueSchema,
   'session.create': sessionCreateValueSchema,
@@ -408,6 +413,10 @@ export abstract class AbstractApiClient implements IApiClient {
   }
 
   // ---- IApiClient API (arrow properties so destructured/passed references stay bound) ----
+
+  readonly db: IApiClient['db'] = {
+    testConnection: (payload, signal) => this.callUnary('db.testConnection', payload, signal),
+  }
 
   readonly sessions: IApiClient['sessions'] = {
     list: (payload, signal) => this.callUnary('session.list', payload, signal),

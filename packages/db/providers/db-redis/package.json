@@ -1,0 +1,37 @@
+{
+  "name": "@deepseek-ai/dsh-db-redis",
+  "version": "0.0.1",
+  "description": "Redis database provider for DSH",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc && tsdown",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@deepseek-ai/cordis": "workspace:*",
+    "@deepseek-ai/dsh-db-connector": "workspace:*",
+    "ioredis": "^5.4.1"
+  },
+  "devDependencies": {
+    "tsdown": "^0.12.7",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.1"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "workspace:*"
+  }
+}
