@@ -36,8 +36,8 @@ export abstract class Service<out T = never> {
    * service is unregistered automatically when the owning fiber unloads.
    * Services with a `[Service.invoke]` body return a callable instance.
    *
-   * @param ctx â€” the context to register in (stored as `this.ctx`).
-   * @param name â€” the service name; defaults to the static `provide` field.
+   * @param ctx â€?the context to register in (stored as `this.ctx`).
+   * @param name â€?the service name; defaults to the static `provide` field.
    */
   constructor(protected ctx: Context, name: string) {
     name ??= this.constructor['provide'] as string
@@ -79,8 +79,8 @@ export abstract class Service<out T = never> {
    * `head` appended. Uses `Config.merge` when the service declares one,
    * otherwise a shallow `Object.assign`.
    *
-   * @param base â€” lowest-precedence config merged before all intercepts.
-   * @param head â€” highest-precedence config merged after all intercepts.
+   * @param base â€?lowest-precedence config merged before all intercepts.
+   * @param head â€?highest-precedence config merged after all intercepts.
    * @returns the merged config.
    */
   [symbols.resolveConfig](base?: T, head?: T): T {

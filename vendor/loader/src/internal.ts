@@ -49,8 +49,8 @@ export interface ModuleJob {
  *
  * Key methods:
  * - getModuleJobForImport(specifier, parentURL, importAttributes)
- * - resolve(specifier, parentURL, importAttributes) â†’ Promise<ResolveResult>
- * - resolveSync(specifier, parentURL, importAttributes) â†’ ResolveResult
+ * - resolve(specifier, parentURL, importAttributes) â†?Promise<ResolveResult>
+ * - resolveSync(specifier, parentURL, importAttributes) â†?ResolveResult
  */
 export interface ModuleLoaderV1 {
   version: 'v1'
@@ -83,8 +83,8 @@ export type ModuleRequestType = unknown // internal symbols
  * Node 24+ ModuleLoader interface.
  *
  * Breaking changes from v1:
- * - getModuleJobForImport removed â†’ getOrCreateModuleJob(parentURL, request, requestType)
- * - resolve removed (became private #resolve) â†’ resolveSync(parentURL, request)
+ * - getModuleJobForImport removed â†?getOrCreateModuleJob(parentURL, request, requestType)
+ * - resolve removed (became private #resolve) â†?resolveSync(parentURL, request)
  * - Parameter order reversed for resolveSync, request object { specifier, attributes }
  * - LoadCache became typed Map<url, { [type]: ModuleJob }> with delete only setting undefined
  */

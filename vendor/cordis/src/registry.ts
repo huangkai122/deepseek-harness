@@ -30,8 +30,8 @@ export type InjectKey = keyof {
  * delays the method call until the declared services are available.
  */
 /**
- * @param name â€” the required service name.
- * @param config â€” optional intercept config applied for that service.
+ * @param name â€?the required service name.
+ * @param config â€?optional intercept config applied for that service.
  * @returns the class or method decorator.
  */
 export function Inject<K extends InjectKey>(name: K, config?: Context[K] extends { [symbols.config]: infer T } ? T : never) {
@@ -64,8 +64,8 @@ export namespace Inject {
   /**
    * Convert array/object/class-inherited inject metadata into a plain map.
    *
-   * @param inject â€” the declaration to normalize; `null`/`undefined` add nothing.
-   * @param result â€” the map to fill (service name â†’ intercept config or `null`).
+   * @param inject â€?the declaration to normalize; `null`/`undefined` add nothing.
+   * @param result â€?the map to fill (service name â†?intercept config or `null`).
    * @returns `result`.
    */
   export function resolve(inject: Inject | null | undefined, result: Dict = Object.create(null)) {
@@ -169,16 +169,16 @@ declare module './context.ts' {
      * Shorthand for `ctx.plugin({ inject, apply: callback })`: the callback
      * is unloaded and re-run whenever a required service changes.
      *
-     * @param deps â€” required services, as an array or a name â†’ config map.
-     * @param callback â€” plugin body called with `(ctx, config)`.
+     * @param deps â€?required services, as an array or a name â†?config map.
+     * @param callback â€?plugin body called with `(ctx, config)`.
      * @returns the fiber; awaiting it settles once loading finished.
      */
     inject(deps: Inject, callback: Plugin.Function<void>): Fiber & PromiseLike<Fiber>
     /**
      * Load a plugin in the current context.
      *
-     * @param plugin â€” a function, class, or `{ apply }` object plugin.
-     * @param args â€” the plugin config, validated against its `Config` schema.
+     * @param plugin â€?a function, class, or `{ apply }` object plugin.
+     * @param args â€?the plugin config, validated against its `Config` schema.
      * @returns the fiber; awaiting it settles once loading finished
      * (rejecting on config or startup errors).
      */
@@ -216,7 +216,7 @@ export class RegistryService {
   /**
    * Resolve a supported plugin shape to its executable callback.
    *
-   * @param plugin â€” a function, class, or `{ apply }` object plugin.
+   * @param plugin â€?a function, class, or `{ apply }` object plugin.
    * @returns the callback identifying the plugin, or `undefined` if invalid.
    */
   resolve(plugin: Plugin): Function | undefined {
@@ -230,7 +230,7 @@ export class RegistryService {
   /**
    * Look up the runtime record for a plugin.
    *
-   * @param plugin â€” any supported plugin shape.
+   * @param plugin â€?any supported plugin shape.
    * @returns the runtime, or `undefined` when the plugin is not registered.
    */
   get(plugin: Plugin) {
@@ -241,7 +241,7 @@ export class RegistryService {
   /**
    * Check whether a plugin has a registered runtime.
    *
-   * @param plugin â€” any supported plugin shape.
+   * @param plugin â€?any supported plugin shape.
    * @returns `true` when at least one fiber of the plugin exists.
    */
   has(plugin: Plugin) {
@@ -252,7 +252,7 @@ export class RegistryService {
   /**
    * Dispose every running fiber for a plugin and remove its runtime record.
    *
-   * @param plugin â€” any supported plugin shape.
+   * @param plugin â€?any supported plugin shape.
    * @returns the removed runtime, or `undefined` when none was registered.
    */
   delete(plugin: Plugin) {
@@ -284,7 +284,7 @@ export class RegistryService {
   /**
    * Visit every registered runtime.
    *
-   * @param callback â€” receives each runtime and its identifying callback.
+   * @param callback â€?receives each runtime and its identifying callback.
    */
   forEach(callback: (value: Plugin.Runtime, key: Function) => void) {
     return this._internal.forEach(callback)
@@ -293,8 +293,8 @@ export class RegistryService {
   /**
    * Start a callback once the requested dependencies are available.
    *
-   * @param inject â€” required services, as an array or a name â†’ config map.
-   * @param callback â€” plugin body called with `(ctx, config)`.
+   * @param inject â€?required services, as an array or a name â†?config map.
+   * @param callback â€?plugin body called with `(ctx, config)`.
    * @returns the fiber; awaiting it settles once loading finished.
    */
   inject(inject: Inject, callback: Plugin.Function<void>) {
@@ -308,9 +308,9 @@ export class RegistryService {
    * under the current context. Throws if `plugin` is not a supported shape or
    * if the current fiber is already disposed.
    *
-   * @param plugin â€” a function, class, or `{ apply }` object plugin.
-   * @param config â€” the plugin config, validated against its `Config` schema.
-   * @param getOuterStack â€” captures the caller stack for effect diagnostics.
+   * @param plugin â€?a function, class, or `{ apply }` object plugin.
+   * @param config â€?the plugin config, validated against its `Config` schema.
+   * @param getOuterStack â€?captures the caller stack for effect diagnostics.
    * @returns the fiber; awaiting it settles once loading finished.
    */
   plugin(plugin: Plugin, config?: any, getOuterStack = buildOuterStack()) {

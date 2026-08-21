@@ -41,7 +41,7 @@ function retryableWriteError(error: unknown): boolean {
 }
 
 /**
- * Apply patch lists to an entry list â€” THE patch semantics of this include,
+ * Apply patch lists to an entry list â€?THE patch semantics of this include,
  * shared by mounting (`applyPatches`) and offline config tooling
  * (`dsh --dump-config`) so a dump can never drift from what boots. The input
  * is never mutated and the result is always detached from it (even with no
@@ -176,7 +176,7 @@ export class Include extends EntryTree {
 
   // Tree-carrier marker (the Group plugin declares the same): this config is
   // entry and patch lists, so the Loader's `internal/config` interpolation
-  // keeps it literal â€” a `!!js` expression inside a nested row's config
+  // keeps it literal â€?a `!!js` expression inside a nested row's config
   // belongs to that row's fiber, resolving lazily in the row's own context.
   // Include's own fields (`path`, `enableLogs`) therefore stay literal too.
   static readonly [EntryGroup.key] = true
