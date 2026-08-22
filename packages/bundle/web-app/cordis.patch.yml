@@ -256,6 +256,9 @@
       name: '@deepseek-ai/dsh-client-ui-deliverables'
 
 
+    - id: ui-ssl-certificates
+      name: '@deepseek-ai/dsh-client-ui-ssl-certificates'
+
     - id: ui-workspace
       name: '@deepseek-ai/dsh-client-ui-workspace'
 

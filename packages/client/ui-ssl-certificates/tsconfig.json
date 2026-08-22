@@ -1,0 +1,15 @@
+{
+  "extends": "../../../tsconfig.base.client.json",
+  "compilerOptions": { "rootDir": "src", "outDir": "lib/types", "composite": true },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "references": [
+    { "path": "../../../vendor/cordis" },
+    { "path": "../../settings/settings" },
+    { "path": "../runtime" },
+    { "path": "../locale" },
+    { "path": "../ui-settings" },
+    { "path": "../ui-user-center" },
+    { "path": "../ui-slots" },
+    { "path": "../../runtime-diagnostics/invariants" }
+  ]
+}
