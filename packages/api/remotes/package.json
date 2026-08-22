@@ -55,7 +55,8 @@
     "lib/types/**/*.d.ts"
   ],
   "dependencies": {
-    "@deepseek-ai/dsh-typert-protocol": "workspace:^"
+    "@deepseek-ai/dsh-typert-protocol": "workspace:^",
+    "@deepseek-ai/dsh-user-center": "workspace:^"
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-agent": "workspace:^",
@@ -73,6 +74,7 @@
     "@deepseek-ai/dsh-session": "workspace:^",
     "@deepseek-ai/dsh-session-persistence": "workspace:^",
     "@deepseek-ai/dsh-session-reference": "workspace:^",
+    "@deepseek-ai/dsh-user-center": "workspace:^",
     "@deepseek-ai/dsh-settings": "workspace:^",
     "@deepseek-ai/dsh-typert-registry": "workspace:^",
     "@deepseek-ai/cordis": "workspace:^"
@@ -93,6 +95,7 @@
     "@deepseek-ai/dsh-session": "workspace:^",
     "@deepseek-ai/dsh-session-persistence": "workspace:^",
     "@deepseek-ai/dsh-session-reference": "workspace:^",
+    "@deepseek-ai/dsh-user-center": "workspace:^",
     "@deepseek-ai/dsh-settings": "workspace:^",
     "@deepseek-ai/dsh-typert-registry": "workspace:^",
     "@deepseek-ai/cordis": "workspace:^"

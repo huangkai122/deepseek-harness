@@ -163,7 +163,9 @@
     - id: client-hmr
       name: '@deepseek-ai/dsh-client-hmr'
 
-    # ── browser plugin roster (dsh.client rows; node halves are layer-2 hosts) ──
+    - id: user-center
+      name: '@deepseek-ai/dsh-user-center'
+
 
     # Dual-face: the node half scans this tree, composes window.__DSH_BOOT__,
     # and serves /plugins/<id>/client.js; the browser half is the module table
@@ -238,6 +240,10 @@
 
     - id: ui-game-center
       name: '@deepseek-ai/dsh-client-ui-game-center'
+
+    - id: ui-user-center
+      name: '@deepseek-ai/dsh-client-ui-user-center'
+
 
     # Durable workflow lifecycle as an independent Chat node after the
     # existing generic workflow tool row.

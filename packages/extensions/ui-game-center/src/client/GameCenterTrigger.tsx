@@ -6,17 +6,18 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { IconPlayOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { GameCenter } from './GameCenter'
 
 /** Footer action owner props: the sidebar column state. */
 interface GameCenterTriggerProps {
-  wide: boolean
+  wide?: boolean
 }
 
 /**
  * Footer action button with a game icon, and the game center overlay dialog.
  */
-export function GameCenterTrigger({ wide }: GameCenterTriggerProps) {
+export function GameCenterTrigger({ wide = true }: GameCenterTriggerProps) {
   const [open, setOpen] = useState(false)
 
   const handleClose = useCallback(() => { setOpen(false) }, [])
@@ -48,7 +49,7 @@ export function GameCenterTrigger({ wide }: GameCenterTriggerProps) {
           e.currentTarget.style.background = 'transparent'
         }}
       >
-        <span style={styles.icon}>🎮</span>
+        <IconPlayOutline16 size={17} />
         {wide && <span style={styles.label}>游戏中心</span>}
       </button>
 
@@ -57,7 +58,7 @@ export function GameCenterTrigger({ wide }: GameCenterTriggerProps) {
           <div style={styles.mask} aria-hidden="true" onClick={handleClose} />
           <div style={styles.dialog} role="dialog" aria-modal="true" aria-label="游戏中心">
             <div style={styles.header}>
-              <span style={styles.title}>🎮 游戏中心</span>
+              <span style={styles.title}><IconPlayOutline16 size={17} /> 游戏中心</span>
               <button
                 type="button"
                 style={styles.closeButton}

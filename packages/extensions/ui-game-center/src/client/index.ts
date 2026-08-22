@@ -1,33 +1,15 @@
-/**
- * Game Center client plugin entry.
- * Registers the Game Center as a sidebar footer action with a game icon,
- * opening a game-center overlay dialog.
- */
-
+/** Game Center client plugin entry. */
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
-// Type-only: pulls the sidebar slot declarations into this program so
-// TypeScript knows about the 'sidebar.footer.action' slot key.
-import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
+import type {} from '@deepseek-ai/dsh-client-ui-user-center/client'
 import { GameCenterTrigger } from './GameCenterTrigger'
 
-/** Required services for slot contribution. */
 export const inject = ['slots'] as const
 
-/**
- * Client plugin body: register the Game Center footer action.
- * @param ctx - client root context.
- */
+/** Register the existing Game Center overlay as a user-center menu item. */
 export function apply(ctx: ClientContext): void {
-  // Register as a sidebar footer action (game icon button above Settings).
-  // Uses inject() to defer registration until the sidebar declares the slot.
-  ctx.slots.inject('sidebar.footer.action', () =>
-    ctx.slots.register(
-      {
-        name: 'sidebar.footer.action',
-        id: 'game-center',
-        order: 10,
-      },
-      GameCenterTrigger,
-    ),
-  )
+  ctx.slots.inject('user-center.menu.entry', () => ctx.slots.register({
+    name: 'user-center.menu.entry',
+    id: 'game-center',
+    order: 10,
+  }, GameCenterTrigger))
 }

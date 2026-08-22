@@ -102,7 +102,7 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
  * @returns the settings shell element tree.
  */
 export function SettingsRoot(props: SettingsRootComponentProps) {
-  const { wide, useSections, useOnboardingSteps, useSessions, renderSlot } = props
+  const { useSections, useOnboardingSteps, useSessions, useNavigation, renderSlot } = props
   const [open, setOpen] = useState(false)
   const [activeId, setActiveId] = useState<string | undefined>(undefined)
   const [completedOnboarding, setCompletedOnboarding] = useState<ReadonlySet<string>>(() => new Set())
@@ -119,6 +119,23 @@ export function SettingsRoot(props: SettingsRootComponentProps) {
   // freshly localized text on locale change, and the trigger/header/close
   // seats re-render through their own outlets' subscriptions.
   const rows = useSections(s => s)
+  const navigation = useNavigation(s => s)
+  useEffect(() => {
+    if (navigation.requestId === 0) return
+    setActiveId(navigation.sectionId)
+    setOpen(true)
+  }, [navigation])
+
+  useEffect(() => {
+    const openFromUserCenter = () => { setActiveId(undefined); setOpen(true) }
+    window.addEventListener('dsh-settings-open', openFromUserCenter)
+    document.addEventListener('dsh-settings-open', openFromUserCenter)
+    return () => {
+      window.removeEventListener('dsh-settings-open', openFromUserCenter)
+      document.removeEventListener('dsh-settings-open', openFromUserCenter)
+    }
+  }, [])
+
   const onboardingSteps = useOnboardingSteps(s => s)
   const onboardingActive = useSessions(state =>
     state.phase === 'ready'
@@ -141,15 +158,6 @@ export function SettingsRoot(props: SettingsRootComponentProps) {
 
   return (
     <>
-      <button
-        type="button"
-        className={clsx(css.trigger, !wide && css.rail)}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => { setOpen(true) }}
-      >
-        {renderSlot('settings.trigger', { wide })}
-      </button>
       {open && (
         <SettingsPanel
           rows={rows}

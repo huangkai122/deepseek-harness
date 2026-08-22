@@ -20,11 +20,12 @@ import type {
   SettingsOnboardingStep, SettingsRootInjected, SettingsSectionRow,
 } from './shell-contract.ts'
 import { SettingsRoot } from './SettingsRoot.tsx'
-import { CloseLabel, HeaderContent, TriggerContent } from './chrome.tsx'
+import { CloseLabel, HeaderContent } from './chrome.tsx'
 import { GeneralSection } from './GeneralSection.tsx'
 import { SettingsDocumentAction } from './SettingsDocumentAction.tsx'
 import type { SettingsDocumentActionInjected } from './SettingsDocumentAction.tsx'
 import { SettingsDocumentStore } from './settings-document-store.ts'
+import { SettingsNavigationService } from './navigation.ts'
 import { en, zh, type SettingsKey } from './locales.ts'
 
 export type {
@@ -61,6 +62,7 @@ export const inject = ['slots', 'locale', 'connection', 'settingsScope']
  * @param ctx - client root context.
  */
 export function apply(ctx: ClientContext): void {
+  ctx.plugin(SettingsNavigationService)
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-settings-general: dictionaries')
 
   // Copy freshness is framework-owned: components read the standard `t`
@@ -90,6 +92,13 @@ export function apply(ctx: ClientContext): void {
   let rows: readonly SettingsSectionRow[] = []
   let onboardingVersion = -1
   let onboardingSteps: readonly SettingsOnboardingStep[] = []
+  const navigation = ctx.get('settingsNavigation') as SettingsNavigationService | undefined
+  const emptyNavigationSnapshot = { requestId: 0 } as const
+  const emptyNavigation = {
+    getSnapshot: () => emptyNavigationSnapshot,
+    subscribe: (_listener: () => void) => () => {},
+  }
+  const navigationSource = navigation ?? emptyNavigation
   const shellInjected = (): SettingsRootInjected => ({
     hooks: {
       sections: {
@@ -119,6 +128,10 @@ export function apply(ctx: ClientContext): void {
           }
         },
       },
+      navigation: {
+        getSnapshot: () => navigationSource.getSnapshot(),
+        subscribe: listener => navigationSource.subscribe(listener),
+      },
       onboardingSteps: {
         getSnapshot: () => {
           const version = ctx.slots.getVersion('settings.onboarding')
@@ -141,7 +154,7 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('sidebar.settings', () => ctx.slots.register({
     name: 'sidebar.settings',
     children: {
-      'settings.trigger': { kind: 'single', scope: 'root' },
+
       'settings.header': { kind: 'single', scope: 'root' },
       'settings.action': { kind: 'list', scope: 'root' },
       'settings.close': { kind: 'single', scope: 'root' },
@@ -151,8 +164,6 @@ export function apply(ctx: ClientContext): void {
     inject: shellInjected,
   }, SettingsRoot))
 
-  ctx.slots.inject('settings.trigger', () =>
-    ctx.slots.register({ name: 'settings.trigger', locale: NS }, TriggerContent))
   ctx.slots.inject('settings.header', () =>
     ctx.slots.register({ name: 'settings.header', locale: NS }, HeaderContent))
   if (documentInjected !== undefined) {

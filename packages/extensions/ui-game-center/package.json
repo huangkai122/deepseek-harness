@@ -6,41 +6,22 @@
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./lib/types/index.d.ts",
-      "default": "./lib/index.js"
-    },
-    "./client": {
-      "types": "./lib/types/client/index.d.ts",
-      "default": "./lib/client.js"
-    },
+    ".": { "types": "./lib/types/index.d.ts", "default": "./lib/index.js" },
+    "./client": { "types": "./lib/types/client/index.d.ts", "default": "./lib/client.js" },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
-  "dsh": {
-    "client": {
-      "inject": [
-        "@deepseek-ai/dsh-client-locale",
-        "@deepseek-ai/dsh-client-runtime",
-        "@deepseek-ai/dsh-client-ui-primitives"
-      ],
-      "platform": "web"
-    }
-  },
-  "scripts": {
-    "bundle": "tsdown",
-    "watch": "tsdown --watch"
-  },
+  "dsh": { "client": { "inject": ["@deepseek-ai/dsh-client-locale", "@deepseek-ai/dsh-client-runtime", "@deepseek-ai/dsh-client-ui-primitives", "@deepseek-ai/dsh-client-ui-user-center"], "platform": "web" } },
+  "scripts": { "bundle": "tsdown", "watch": "tsdown --watch" },
   "license": "MIT",
-  "dependencies": {
-    "react": "^18.2.0"
-  },
+  "dependencies": { "react": "^18.2.0" },
   "peerDependencies": {
     "@deepseek-ai/dsh-client-locale": "workspace:^",
     "@deepseek-ai/dsh-client-runtime": "workspace:^",
     "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sidebar": "workspace:^",
     "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-user-center": "workspace:^",
     "@deepseek-ai/cordis": "workspace:^"
   },
   "devDependencies": {
@@ -49,14 +30,11 @@
     "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
     "@deepseek-ai/dsh-client-ui-sidebar": "workspace:^",
     "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-user-center": "workspace:^",
     "@types/react": "~18.3.1",
     "@types/react-dom": "~18.3.0",
     "@deepseek-ai/cordis": "workspace:^",
     "react-dom": "^18.2.0"
   },
-  "files": [
-    "lib/index.js",
-    "lib/client.js",
-    "lib/types/**/*.d.ts"
-  ]
+  "files": ["lib/index.js", "lib/client.js", "lib/types/**/*.d.ts"]
 }

@@ -9,6 +9,7 @@ afterEach(cleanup)
 
 type Row = { id: string; order: number; label: string }
 type Step = { id: string; order: number }
+let requestSettings: (() => void) | undefined
 
 /** Slot-content stand-ins: the shell renders whatever the seats contribute. */
 const SEAT_CONTENT: Record<string, string> = {
@@ -34,7 +35,10 @@ function mount({
   // Mutable row source standing in for the bound useSections hook; bump()
   // plays a ledger change through the same observable contract.
   let current = rows
+  let navigation = { requestId: 0 }
   const listeners = new Set<() => void>()
+  const openSettings = () => { navigation = { requestId: navigation.requestId + 1 }; for (const listener of [...listeners]) listener() }
+  requestSettings = openSettings
   const renderSlot = vi.fn(
     ((key: string, _owner: unknown, opts?: { only?: string }) => {
       if (key === 'settings.section') return <div data-testid={`section-${opts?.only ?? 'all'}`} />
@@ -53,7 +57,8 @@ function mount({
     useSessions,
     useWorkspaces: unusedHook,
     wide,
-    useOnboardingSteps: select => select(steps),
+    useNavigation: select => select(navigation),
+     useOnboardingSteps: select => select(steps),
     useSections: (select) => {
       const [, force] = useState(0)
       useEffect(() => {
@@ -76,24 +81,14 @@ function mount({
 }
 
 function openPanel() {
-  fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+  act(() => { requestSettings?.() })
 }
 
-describe('SettingsRoot trigger', () => {
-  it('renders the trigger seat content as the accessible name (no aria-label of its own)', () => {
-    const { renderSlot } = mount()
-    const trigger = screen.getByRole('button', { name: 'Settings' })
-    expect(trigger.hasAttribute('aria-label')).toBe(false)
-    expect(renderSlot).toHaveBeenCalledWith('settings.trigger', { wide: true })
-    expect(trigger.getAttribute('aria-expanded')).toBe('false')
-    fireEvent.click(trigger)
+describe('SettingsRoot navigation', () => {
+  it('opens from a navigation request', () => {
+    mount()
+    openPanel()
     expect(screen.getByRole('dialog')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Settings', expanded: true })).toBeTruthy()
-  })
-
-  it('hands the rail state to the trigger seat', () => {
-    const { renderSlot } = mount({ wide: false })
-    expect(renderSlot).toHaveBeenCalledWith('settings.trigger', { wide: false })
   })
 })
 
