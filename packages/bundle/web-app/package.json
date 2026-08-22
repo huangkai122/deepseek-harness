@@ -95,6 +95,8 @@
     "@deepseek-ai/dsh-db-mysql": "workspace:^",
     "@deepseek-ai/dsh-db-postgresql": "workspace:^",
     "@deepseek-ai/dsh-db-redis": "workspace:^",
+    "@deepseek-ai/dsh-tool-db-execute": "workspace:^",
+    "@deepseek-ai/dsh-tool-db-query": "workspace:^",
     "@deepseek-ai/dsh-web-frontend": "workspace:^",
     "@deepseek-ai/dsh-host-frontend-static": "workspace:^",
     "@deepseek-ai/dsh-host-apiproxy": "workspace:^",

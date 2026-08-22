@@ -30,22 +30,36 @@
     "@deepseek-ai/cordis": "workspace:*"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-api-remotes": "workspace:*",
     "@deepseek-ai/dsh-client-connection": "workspace:*",
     "@deepseek-ai/dsh-client-runtime": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-settings": "workspace:*",
     "@deepseek-ai/dsh-client-ui-settings-plugins": "workspace:*",
     "@deepseek-ai/dsh-client-ui-slots": "workspace:*",
     "@types/react": "~18.3.1",
-    "react": "^19.1.0",
+    "react": "^18.2.0",
     "tsdown": "^0.12.7",
     "typescript": "^5.8.3",
     "vitest": "^3.2.1"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:*",
-    "react": "^19.1.0"
+    "@deepseek-ai/dsh-api-remotes": "workspace:*",
+    "@deepseek-ai/dsh-client-connection": "workspace:*",
+    "@deepseek-ai/dsh-client-runtime": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-settings": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-settings-plugins": "workspace:*",
+    "react": "^18.2.0"
   },
   "dsh": {
     "client": {
+      "inject": [
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-settings-plugins"
+      ],
       "platform": "web"
     }
   }

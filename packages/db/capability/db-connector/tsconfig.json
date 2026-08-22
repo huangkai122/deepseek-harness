@@ -9,6 +9,12 @@
   "references": [
     {
       "path": "../../../../vendor/cordis"
+    },
+    {
+      "path": "../../../settings/settings"
+    },
+    {
+      "path": "../../../credentials/credentials"
     }
   ]
 }

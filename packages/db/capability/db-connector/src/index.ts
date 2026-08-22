@@ -8,14 +8,64 @@
  */
 
 import { Service } from '@deepseek-ai/cordis'
+import { credentialRef } from '@deepseek-ai/dsh-credentials'
+import { settingsNamespace } from '@deepseek-ai/dsh-settings'
+import { createHash } from 'node:crypto'
+import z from '@deepseek-ai/schemastery'
 import type {
   DbConnectionConfig,
+  ResolvedDbConnectionConfig,
   DbConnector,
   DbQueryResult,
   ConnectionTestResult,
   BatchOperation,
   TableSchema,
 } from './types.js'
+
+/** Settings namespace used by the Web database connection card. */
+export const DB_CONNECTIONS_NAMESPACE = 'db-connections'
+
+/** One connection entry stored in the user settings document. */
+export interface DbConnectionSetting {
+  /** User-visible connection name. */
+  name: string
+  /** Database implementation selected for this connection. */
+  type: 'mysql' | 'postgresql' | 'redis'
+  /** Database host. */
+  host: string
+  /** Database port. */
+  port: number
+  /** SQL database name or Redis database index. */
+  database?: string
+  /** Database user name. */
+  username?: string
+  /** Credential reference for the password. */
+  passwordRef?: string
+  /** Whether to use TLS/SSL. */
+  ssl?: boolean
+}
+
+/** User-editable database connection settings. */
+export interface DbConnectionSettings {
+  /** Named connections available to database consumers. */
+  connections: DbConnectionSetting[]
+}
+
+/** Schema shared by Host registration and the browser settings descriptor. */
+export const DbConnectionSettingsSchema: z<DbConnectionSettings> = z.object({
+  connections: z.array(z.object({
+    name: z.string(),
+    type: z.union(['mysql', 'postgresql', 'redis']),
+    host: z.string(),
+    port: z.number(),
+    database: z.string(),
+    username: z.string(),
+    passwordRef: z.string(),
+    ssl: z.boolean(),
+  })).default([]),
+})
+
+const DB_CONNECTIONS_NS = settingsNamespace(DB_CONNECTIONS_NAMESPACE)
 
 export type {
   DbConnectionConfig,
@@ -30,6 +80,11 @@ export type {
   IndexInfo,
   ForeignKeyInfo,
 } from './types.js'
+
+/** Return a non-secret cache component for a resolved database password. */
+export function dbCredentialFingerprint(password: string | undefined): string {
+  return createHash('sha256').update(password ?? '').digest('hex')
+}
 
 /**
  * Database connector service.
@@ -107,7 +162,7 @@ export class DbConnectorService extends Service {
    * @returns Test result with success status, version, and latency
    */
   async testConnection(config: DbConnectionConfig): Promise<ConnectionTestResult> {
-    return this.getConnector(config.type).test(config)
+    return this.getConnector(config.type).test(await this.resolveConfig(config))
   }
 
   /**
@@ -119,7 +174,7 @@ export class DbConnectorService extends Service {
    * @returns Query result with rows and metadata
    */
   async query(config: DbConnectionConfig, query: string, params?: unknown[]): Promise<DbQueryResult> {
-    return this.getConnector(config.type).query(config, query, params)
+    return this.getConnector(config.type).query(await this.resolveConfig(config), query, params)
   }
 
   /**
@@ -131,7 +186,7 @@ export class DbConnectorService extends Service {
    * @returns Execution result with affected rows
    */
   async execute(config: DbConnectionConfig, command: string, params?: unknown[]): Promise<DbQueryResult> {
-    return this.getConnector(config.type).execute(config, command, params)
+    return this.getConnector(config.type).execute(await this.resolveConfig(config), command, params)
   }
 
   /**
@@ -142,7 +197,7 @@ export class DbConnectorService extends Service {
    * @returns Results for each operation
    */
   async batch(config: DbConnectionConfig, operations: BatchOperation[]): Promise<DbQueryResult[]> {
-    return this.getConnector(config.type).batch(config, operations)
+    return this.getConnector(config.type).batch(await this.resolveConfig(config), operations)
   }
 
   /**
@@ -153,7 +208,7 @@ export class DbConnectorService extends Service {
    * @returns Table schema with columns, indexes, and foreign keys
    */
   async getTableSchema(config: DbConnectionConfig, table: string): Promise<TableSchema> {
-    return this.getConnector(config.type).getTableSchema(config, table)
+    return this.getConnector(config.type).getTableSchema(await this.resolveConfig(config), table)
   }
 
   /**
@@ -163,13 +218,25 @@ export class DbConnectorService extends Service {
    * @returns Array of table names
    */
   async listTables(config: DbConnectionConfig): Promise<string[]> {
-    return this.getConnector(config.type).listTables(config)
+    return this.getConnector(config.type).listTables(await this.resolveConfig(config))
+  }
+
+  private async resolveConfig(config: DbConnectionConfig): Promise<ResolvedDbConnectionConfig> {
+    if (config.passwordRef === undefined) return config
+    const credentials = this.ctx.get('credentials')
+    if (credentials === undefined) throw new Error('credentials service is required to resolve database passwordRef')
+    const resolved = await credentials.resolve(credentialRef(config.passwordRef))
+    if (resolved === undefined) throw new Error(`database credential is not configured: ${config.passwordRef}`)
+    return { ...config, password: resolved.value }
   }
 }
 
 /** Loader entry that mounts the database connector service. */
 export function apply(ctx: import('@deepseek-ai/cordis').Context): void {
   ctx.plugin(DbConnectorService)
+  ctx.inject(['settings'], (settingsCtx) => {
+    settingsCtx.settings.register(DB_CONNECTIONS_NS, DbConnectionSettingsSchema)
+  })
 }
 
 declare module '@deepseek-ai/cordis' {

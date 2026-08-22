@@ -9,7 +9,7 @@
 import mysql from 'mysql2/promise'
 import { readFile } from 'node:fs/promises'
 import type {
-  DbConnectionConfig,
+  ResolvedDbConnectionConfig,
   DbConnector,
   DbQueryResult,
   ConnectionTestResult,
@@ -18,6 +18,7 @@ import type {
   ColumnInfo,
   SslConfig,
 } from '@deepseek-ai/dsh-db-connector/types'
+import { dbCredentialFingerprint } from '@deepseek-ai/dsh-db-connector'
 
 /**
  * MySQL database connector.
@@ -34,14 +35,14 @@ export class MysqlConnector implements DbConnector {
   /**
    * Generate a unique key for connection pool caching.
    */
-  private poolKey(config: DbConnectionConfig): string {
-    return `${config.host}:${config.port}:${config.database ?? ''}:${config.username ?? ''}`
+  private poolKey(config: ResolvedDbConnectionConfig): string {
+    return `${config.host}:${config.port}:${config.database ?? ''}:${config.username ?? ''}:${dbCredentialFingerprint(config.password)}`
   }
 
   /**
    * Get or create a connection pool for the given configuration.
    */
-  private async getPool(config: DbConnectionConfig): Promise<mysql.Pool> {
+  private async getPool(config: ResolvedDbConnectionConfig): Promise<mysql.Pool> {
     const key = this.poolKey(config)
 
     if (!this.pools.has(key)) {
@@ -58,6 +59,7 @@ export class MysqlConnector implements DbConnector {
         queueLimit: 0,
         connectTimeout: config.pool?.connectionTimeoutMs ?? 10000,
         ...config.options,
+        ...(config.password === undefined ? {} : { password: config.password }),
       })
 
       this.pools.set(key, pool)
@@ -97,7 +99,7 @@ export class MysqlConnector implements DbConnector {
    * @param config - Connection configuration
    * @returns Test result with server version and latency
    */
-  async test(config: DbConnectionConfig): Promise<ConnectionTestResult> {
+  async test(config: ResolvedDbConnectionConfig): Promise<ConnectionTestResult> {
     const startTime = Date.now()
 
     try {
@@ -144,7 +146,7 @@ export class MysqlConnector implements DbConnector {
    * @param params - Query parameters
    * @returns Query result with rows and column info
    */
-  async query(config: DbConnectionConfig, query: string, params?: unknown[]): Promise<DbQueryResult> {
+  async query(config: ResolvedDbConnectionConfig, query: string, params?: unknown[]): Promise<DbQueryResult> {
     const startTime = Date.now()
 
     try {
@@ -181,7 +183,7 @@ export class MysqlConnector implements DbConnector {
    * @param params - Command parameters
    * @returns Execution result with affected rows
    */
-  async execute(config: DbConnectionConfig, command: string, params?: unknown[]): Promise<DbQueryResult> {
+  async execute(config: ResolvedDbConnectionConfig, command: string, params?: unknown[]): Promise<DbQueryResult> {
     const startTime = Date.now()
 
     try {
@@ -211,7 +213,7 @@ export class MysqlConnector implements DbConnector {
    * @param operations - List of SQL operations
    * @returns Results for each operation
    */
-  async batch(config: DbConnectionConfig, operations: BatchOperation[]): Promise<DbQueryResult[]> {
+  async batch(config: ResolvedDbConnectionConfig, operations: BatchOperation[]): Promise<DbQueryResult[]> {
     const pool = await this.getPool(config)
     const connection = await pool.getConnection()
     const results: DbQueryResult[] = []
@@ -268,7 +270,7 @@ export class MysqlConnector implements DbConnector {
    * @param table - Table name
    * @returns Table schema with columns, indexes, and foreign keys
    */
-  async getTableSchema(config: DbConnectionConfig, table: string): Promise<TableSchema> {
+  async getTableSchema(config: ResolvedDbConnectionConfig, table: string): Promise<TableSchema> {
     const pool = await this.getPool(config)
 
     // Get column information
@@ -337,7 +339,7 @@ export class MysqlConnector implements DbConnector {
    * @param config - Connection configuration
    * @returns Array of table names
    */
-  async listTables(config: DbConnectionConfig): Promise<string[]> {
+  async listTables(config: ResolvedDbConnectionConfig): Promise<string[]> {
     const pool = await this.getPool(config)
     const [rows] = await pool.execute(
       'SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ?',

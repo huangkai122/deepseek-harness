@@ -26,7 +26,10 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@deepseek-ai/cordis": "workspace:*"
+    "@deepseek-ai/cordis": "workspace:*",
+    "@deepseek-ai/dsh-credentials": "workspace:*",
+    "@deepseek-ai/dsh-settings": "workspace:*",
+    "@deepseek-ai/schemastery": "workspace:*"
   },
   "devDependencies": {
     "tsdown": "^0.12.7",

@@ -73,6 +73,13 @@ export class FakeApiClient implements IApiClient {
   /** Chronological call record: [method, payload]. */
   readonly calls: { method: string; payload: unknown }[] = []
 
+  readonly db: IApiClient['db'] = {
+    testConnection: payload => this.record('db.testConnection', payload, Promise.resolve(ok({
+      success: false,
+      error: 'Database connection tests are unavailable in the fake client.',
+    }))),
+  }
+
   // Programmable slots (defaults answer OK-empty); reassign per case.
   onList: (payload: unknown) => Promise<RpcResponse<{ items: never[] }>> = () => Promise.resolve(ok({ items: [] }))
   onSearch: (payload: unknown) => Promise<RpcResponse<{ items: SessionSearchItem[]; hasMore: boolean }>> =

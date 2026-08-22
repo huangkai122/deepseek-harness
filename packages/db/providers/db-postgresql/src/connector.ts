@@ -9,7 +9,7 @@
 import pg from 'pg'
 import { readFile } from 'node:fs/promises'
 import type {
-  DbConnectionConfig,
+  ResolvedDbConnectionConfig,
   DbConnector,
   DbQueryResult,
   ConnectionTestResult,
@@ -20,6 +20,7 @@ import type {
   ForeignKeyInfo,
   SslConfig,
 } from '@deepseek-ai/dsh-db-connector/types'
+import { dbCredentialFingerprint } from '@deepseek-ai/dsh-db-connector'
 
 const { Pool } = pg
 
@@ -38,14 +39,14 @@ export class PostgresqlConnector implements DbConnector {
   /**
    * Generate a unique key for connection pool caching.
    */
-  private poolKey(config: DbConnectionConfig): string {
-    return `${config.host}:${config.port}:${config.database ?? ''}:${config.username ?? ''}`
+  private poolKey(config: ResolvedDbConnectionConfig): string {
+    return `${config.host}:${config.port}:${config.database ?? ''}:${config.username ?? ''}:${dbCredentialFingerprint(config.password)}`
   }
 
   /**
    * Get or create a connection pool for the given configuration.
    */
-  private async getPool(config: DbConnectionConfig): Promise<pg.Pool> {
+  private async getPool(config: ResolvedDbConnectionConfig): Promise<pg.Pool> {
     const key = this.poolKey(config)
 
     if (!this.pools.has(key)) {
@@ -61,6 +62,7 @@ export class PostgresqlConnector implements DbConnector {
         idleTimeoutMillis: config.pool?.idleTimeoutMs ?? 30000,
         connectionTimeoutMillis: config.pool?.connectionTimeoutMs ?? 10000,
         ...config.options,
+        ...(config.password === undefined ? {} : { password: config.password }),
       })
 
       // Handle pool errors
@@ -105,7 +107,7 @@ export class PostgresqlConnector implements DbConnector {
    * @param config - Connection configuration
    * @returns Test result with server version and latency
    */
-  async test(config: DbConnectionConfig): Promise<ConnectionTestResult> {
+  async test(config: ResolvedDbConnectionConfig): Promise<ConnectionTestResult> {
     const startTime = Date.now()
 
     try {
@@ -152,7 +154,7 @@ export class PostgresqlConnector implements DbConnector {
    * @param params - Query parameters
    * @returns Query result with rows and column info
    */
-  async query(config: DbConnectionConfig, query: string, params?: unknown[]): Promise<DbQueryResult> {
+  async query(config: ResolvedDbConnectionConfig, query: string, params?: unknown[]): Promise<DbQueryResult> {
     const startTime = Date.now()
 
     try {
@@ -189,7 +191,7 @@ export class PostgresqlConnector implements DbConnector {
    * @param params - Command parameters
    * @returns Execution result with affected rows
    */
-  async execute(config: DbConnectionConfig, command: string, params?: unknown[]): Promise<DbQueryResult> {
+  async execute(config: ResolvedDbConnectionConfig, command: string, params?: unknown[]): Promise<DbQueryResult> {
     const startTime = Date.now()
 
     try {
@@ -222,7 +224,7 @@ export class PostgresqlConnector implements DbConnector {
    * @param operations - List of SQL operations
    * @returns Results for each operation
    */
-  async batch(config: DbConnectionConfig, operations: BatchOperation[]): Promise<DbQueryResult[]> {
+  async batch(config: ResolvedDbConnectionConfig, operations: BatchOperation[]): Promise<DbQueryResult[]> {
     const pool = await this.getPool(config)
     const client = await pool.connect()
     const results: DbQueryResult[] = []
@@ -280,7 +282,7 @@ export class PostgresqlConnector implements DbConnector {
    * @param table - Table name
    * @returns Table schema with columns, indexes, and foreign keys
    */
-  async getTableSchema(config: DbConnectionConfig, table: string): Promise<TableSchema> {
+  async getTableSchema(config: ResolvedDbConnectionConfig, table: string): Promise<TableSchema> {
     const pool = await this.getPool(config)
 
     // Get column information
@@ -380,7 +382,7 @@ export class PostgresqlConnector implements DbConnector {
    * @param config - Connection configuration
    * @returns Array of table names
    */
-  async listTables(config: DbConnectionConfig): Promise<string[]> {
+  async listTables(config: ResolvedDbConnectionConfig): Promise<string[]> {
     const pool = await this.getPool(config)
     const result = await pool.query(
       `SELECT table_name

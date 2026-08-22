@@ -29,6 +29,12 @@ export interface DbConnectionConfig {
   options?: Record<string, unknown>
 }
 
+/** Connection configuration after resolving credential references in memory. */
+export interface ResolvedDbConnectionConfig extends DbConnectionConfig {
+  /** Resolved password; never persisted or sent over the configuration wire. */
+  password?: string
+}
+
 /**
  * SSL configuration for database connections.
  */
@@ -173,7 +179,7 @@ export interface DbConnector {
    * @param config - Connection configuration
    * @returns Test result
    */
-  test(config: DbConnectionConfig): Promise<ConnectionTestResult>
+  test(config: ResolvedDbConnectionConfig): Promise<ConnectionTestResult>
 
   /**
    * Execute a query (SELECT for SQL, read commands for Redis).
@@ -182,7 +188,7 @@ export interface DbConnector {
    * @param params - Query parameters
    * @returns Query result
    */
-  query(config: DbConnectionConfig, query: string, params?: unknown[]): Promise<DbQueryResult>
+  query(config: ResolvedDbConnectionConfig, query: string, params?: unknown[]): Promise<DbQueryResult>
 
   /**
    * Execute a command (INSERT/UPDATE/DELETE for SQL, write commands for Redis).
@@ -191,7 +197,7 @@ export interface DbConnector {
    * @param params - Command parameters
    * @returns Execution result
    */
-  execute(config: DbConnectionConfig, command: string, params?: unknown[]): Promise<DbQueryResult>
+  execute(config: ResolvedDbConnectionConfig, command: string, params?: unknown[]): Promise<DbQueryResult>
 
   /**
    * Execute multiple operations in a transaction.
@@ -199,7 +205,7 @@ export interface DbConnector {
    * @param operations - List of operations
    * @returns Results for each operation
    */
-  batch(config: DbConnectionConfig, operations: BatchOperation[]): Promise<DbQueryResult[]>
+  batch(config: ResolvedDbConnectionConfig, operations: BatchOperation[]): Promise<DbQueryResult[]>
 
   /**
    * Get table schema.
@@ -207,12 +213,12 @@ export interface DbConnector {
    * @param table - Table name (or key pattern for Redis)
    * @returns Table schema
    */
-  getTableSchema(config: DbConnectionConfig, table: string): Promise<TableSchema>
+  getTableSchema(config: ResolvedDbConnectionConfig, table: string): Promise<TableSchema>
 
   /**
    * List all tables.
    * @param config - Connection configuration
    * @returns List of table names
    */
-  listTables(config: DbConnectionConfig): Promise<string[]>
+  listTables(config: ResolvedDbConnectionConfig): Promise<string[]>
 }

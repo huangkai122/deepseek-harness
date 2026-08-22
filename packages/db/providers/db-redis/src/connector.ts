@@ -8,7 +8,7 @@
 
 import Redis from 'ioredis'
 import type {
-  DbConnectionConfig,
+  ResolvedDbConnectionConfig,
   DbConnector,
   DbQueryResult,
   ConnectionTestResult,
@@ -16,6 +16,7 @@ import type {
   TableSchema,
   ColumnInfo,
 } from '@deepseek-ai/dsh-db-connector/types'
+import { dbCredentialFingerprint } from '@deepseek-ai/dsh-db-connector'
 
 /**
  * Redis database connector.
@@ -32,14 +33,14 @@ export class RedisConnector implements DbConnector {
   /**
    * Generate a unique key for client caching.
    */
-  private clientKey(config: DbConnectionConfig): string {
-    return `${config.host}:${config.port}:${config.database ?? '0'}`
+  private clientKey(config: ResolvedDbConnectionConfig): string {
+    return `${config.host}:${config.port}:${config.database ?? '0'}:${config.username ?? ''}:${dbCredentialFingerprint(config.password)}`
   }
 
   /**
    * Get or create a Redis client for the given configuration.
    */
-  private getClient(config: DbConnectionConfig): Redis {
+  private getClient(config: ResolvedDbConnectionConfig): Redis {
     const key = this.clientKey(config)
 
     if (!this.clients.has(key)) {
@@ -56,6 +57,7 @@ export class RedisConnector implements DbConnector {
           return Math.min(times * 200, 2000)
         },
         ...config.options,
+        ...(config.password === undefined ? {} : { password: config.password }),
       })
 
       this.clients.set(key, client)
@@ -83,7 +85,7 @@ export class RedisConnector implements DbConnector {
    * @param config - Connection configuration
    * @returns Test result with server version and latency
    */
-  async test(config: DbConnectionConfig): Promise<ConnectionTestResult> {
+  async test(config: ResolvedDbConnectionConfig): Promise<ConnectionTestResult> {
     const startTime = Date.now()
 
     try {
@@ -121,7 +123,7 @@ export class RedisConnector implements DbConnector {
    * @param params - Command parameters
    * @returns Command result
    */
-  async query(config: DbConnectionConfig, command: string, params?: unknown[]): Promise<DbQueryResult> {
+  async query(config: ResolvedDbConnectionConfig, command: string, params?: unknown[]): Promise<DbQueryResult> {
     const startTime = Date.now()
 
     try {
@@ -151,7 +153,7 @@ export class RedisConnector implements DbConnector {
    * @param params - Command parameters
    * @returns Execution result
    */
-  async execute(config: DbConnectionConfig, command: string, params?: unknown[]): Promise<DbQueryResult> {
+  async execute(config: ResolvedDbConnectionConfig, command: string, params?: unknown[]): Promise<DbQueryResult> {
     const startTime = Date.now()
 
     try {
@@ -181,7 +183,7 @@ export class RedisConnector implements DbConnector {
    * @param operations - List of Redis commands
    * @returns Results for each command
    */
-  async batch(config: DbConnectionConfig, operations: BatchOperation[]): Promise<DbQueryResult[]> {
+  async batch(config: ResolvedDbConnectionConfig, operations: BatchOperation[]): Promise<DbQueryResult[]> {
     const client = this.getClient(config)
     const pipeline = client.pipeline()
     const startTime = Date.now()
@@ -222,7 +224,7 @@ export class RedisConnector implements DbConnector {
    * @param pattern - Key pattern (e.g., 'user:*')
    * @returns Schema with key types
    */
-  async getTableSchema(config: DbConnectionConfig, pattern: string): Promise<TableSchema> {
+  async getTableSchema(config: ResolvedDbConnectionConfig, pattern: string): Promise<TableSchema> {
     const client = this.getClient(config)
     const keys = await client.keys(pattern)
     const columns: ColumnInfo[] = []
@@ -253,7 +255,7 @@ export class RedisConnector implements DbConnector {
    * @param config - Connection configuration
    * @returns Array of key names
    */
-  async listTables(config: DbConnectionConfig): Promise<string[]> {
+  async listTables(config: ResolvedDbConnectionConfig): Promise<string[]> {
     const client = this.getClient(config)
     return client.keys('*')
   }
