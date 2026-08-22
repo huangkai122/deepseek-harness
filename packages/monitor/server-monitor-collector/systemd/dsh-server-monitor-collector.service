@@ -1,0 +1,22 @@
+[Unit]
+Description=DSH Server Monitor Collector
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=dsh-collector
+Group=dsh-collector
+WorkingDirectory=/opt/dsh-server-monitor-collector
+ExecStart=/usr/bin/node /opt/dsh-server-monitor-collector/lib/cli.js --config /etc/dsh/server-monitor.yml
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/dsh-server-monitor-collector
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

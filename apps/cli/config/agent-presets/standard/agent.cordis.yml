@@ -256,3 +256,6 @@
 
 - id: tool-db-execute
   name: '@deepseek-ai/dsh-tool-db-execute'
+
+- id: tool-server-monitor
+  name: '@deepseek-ai/dsh-tool-server-monitor'

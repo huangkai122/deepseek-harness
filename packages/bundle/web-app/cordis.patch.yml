@@ -113,6 +113,9 @@
     - id: db-redis
       name: '@deepseek-ai/dsh-db-redis'
 
+    - id: server-monitor
+      name: '@deepseek-ai/dsh-server-monitor'
+
     # The API gateway: the transport-agnostic dispatch face every client shape
     # shares. The base layer's agent-default-model service owns the default model.
     - id: api-gateway
@@ -303,6 +306,9 @@
     # Database connection settings card in Plugins settings.
     - id: ui-db-settings
       name: '@deepseek-ai/dsh-client-ui-db-settings'
+
+    - id: ui-server-monitor
+      name: '@deepseek-ai/dsh-client-ui-server-monitor'
 
     # Plan control: the composer plan seat over the plan projection + /plan channel.
     - id: ui-plan

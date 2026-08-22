@@ -1,0 +1,11 @@
+# Copy to /etc/dsh/server-monitor.yml and set mode 0600.
+serverId: prod-01
+serverName: production-01
+collectorId: prod-01-collector
+ingestUrl: https://dsh.example.com/api/server-monitor/ingest
+token: replace-with-the-server-specific-ingest-token
+intervalSeconds: 60
+httpChecks:
+  - key: web.frontend
+    url: http://127.0.0.1/health
+    timeoutMs: 3000
