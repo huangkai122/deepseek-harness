@@ -1,6 +1,6 @@
 import type { SettingsScope } from '@deepseek-ai/dsh-client-runtime/client'
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
-import { DEFAULT_NOTIFY_DAYS, type CertificateRecord, type SslCertificateSettings, statusOf } from '../types.ts'
+import { DEFAULT_NOTIFY_DAYS, formatLocalDateTime, remainingDays, type CertificateRecord, type SslCertificateSettings, statusOf } from '../types.ts'
 
 export interface CertificateState {
   certificates: CertificateRecord[]
@@ -14,6 +14,7 @@ export interface CertificateFace {
   hooks: { certificates: SnapshotStore<CertificateState> }
   save: (certificates: CertificateRecord[], settings: Partial<SslCertificateSettings>) => Promise<void>
   testWebhook: (provider: SslCertificateSettings['webhookProvider'], url: string) => Promise<void>
+  testReminder: (certificate: CertificateRecord) => Promise<void>
 }
 
 function snapshot(scope: SettingsScope<SslCertificateSettings>): CertificateState {
@@ -45,6 +46,17 @@ export class CertificateController {
         const text = 'SSL 证书到期提醒 Webhook 测试'
         const body = provider === 'feishu' ? { msg_type: 'text', content: { text } } : { msgtype: 'text', text: { content: text } }
         const response = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+        if (!response.ok) throw new Error(`Webhook 返回 HTTP ${String(response.status)}`)
+      },
+      testReminder: async certificate => {
+        const current = this.scope.getSnapshot()
+        if (current.status !== 'ready' || current.value === undefined) throw new Error('证书设置尚未加载完成')
+        const settings = current.value
+        if (settings.webhookUrl.trim() === '') throw new Error('请先填写 Webhook 地址')
+        const days = remainingDays(certificate.expiresAt)
+        const text = ['SSL 证书到期提醒（测试）', `${certificate.domain}：${formatLocalDateTime(certificate.expiresAt)}（剩余 ${days} 天）${certificate.remark ? `，${certificate.remark}` : ''}`].join('\n')
+        const body = settings.webhookProvider === 'feishu' ? { msg_type: 'text', content: { text } } : { msgtype: 'text', text: { content: text } }
+        const response = await fetch(settings.webhookUrl, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
         if (!response.ok) throw new Error(`Webhook 返回 HTTP ${String(response.status)}`)
       },
     }

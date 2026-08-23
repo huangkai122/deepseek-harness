@@ -1,21 +1,21 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as XLSX from 'xlsx/xlsx.mjs'
 import { IconGlobeOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
 import css from './CertificateMenuEntry.module.css'
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { CertificateFace, CertificateState } from './controller.ts'
-import { remainingDays, statusOf, type CertificateRecord, type SslCertificateSettings } from '../types.ts'
+import { formatLocalDateTime, remainingDays, statusOf, type CertificateRecord, type SslCertificateSettings } from '../types.ts'
 
 type Props = PropsRuntime<'user-center.menu.entry'> & InjectFace<CertificateFace>
 const statusLabel = { normal: '正常', warning: '即将到期', danger: '紧急' } as const
 const statusColor = { normal: 'var(--dsw-alias-label-success, #16803c)', warning: 'var(--dsw-alias-label-warning, #9a6700)', danger: 'var(--dsw-alias-label-danger, #c5221f)' } as const
 const emptyDraft = (): CertificateRecord => ({ domain: '', expiresAt: '', remark: '' })
 
-function formatDate(value: string): string { const date = new Date(value); return Number.isNaN(date.getTime()) ? value : date.toLocaleString('zh-CN', { hour12: false }) }
+function formatDate(value: string): string { return formatLocalDateTime(value) }
 function inputDate(value: string): string { const date = new Date(value); return Number.isNaN(date.getTime()) ? '' : new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16) }
 function toIso(value: string): string { return value === '' ? '' : new Date(value).toISOString() }
 
-function CertificatePanel({ face, data, close }: { face: Pick<CertificateFace, 'save' | 'testWebhook'>; data: CertificateState; close: () => void }) {
+function CertificatePanel({ face, data, close }: { face: Pick<CertificateFace, 'save' | 'testWebhook' | 'testReminder'>; data: CertificateState; close: () => void }) {
   const [page, setPage] = useState(1)
   const [draft, setDraft] = useState<CertificateRecord | null>(null)
   const [query, setQuery] = useState('')
@@ -24,7 +24,13 @@ function CertificatePanel({ face, data, close }: { face: Pick<CertificateFace, '
   const [url, setUrl] = useState(data.webhookUrl)
   const [notifyDays, setNotifyDays] = useState(String(data.notifyDays))
   const [message, setMessage] = useState('')
+  const [testingDomain, setTestingDomain] = useState<string | null>(null)
+  const [now, setNow] = useState(() => new Date())
   const importRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    const timer = setInterval(() => { setNow(new Date()) }, 60_000)
+    return () => { clearInterval(timer) }
+  }, [])
   const filtered = useMemo(() => data.certificates.filter(cert => cert.domain.toLowerCase().includes(query.toLowerCase())).sort((a, b) => Date.parse(a.expiresAt) - Date.parse(b.expiresAt)), [data.certificates, query])
   const pages = Math.max(1, Math.ceil(filtered.length / 10))
   const rows = filtered.slice((page - 1) * 10, page * 10)
@@ -36,6 +42,10 @@ function CertificatePanel({ face, data, close }: { face: Pick<CertificateFace, '
   const remove = async (domain: string): Promise<void> => {
     if (!window.confirm(`确定删除 ${domain}？`)) return
     await face.save(data.certificates.filter(cert => cert.domain !== domain), {})
+  }
+  const testReminder = async (certificate: CertificateRecord): Promise<void> => {
+    setTestingDomain(certificate.domain)
+    try { await face.testReminder(certificate); setMessage(`已发送 ${certificate.domain} 的测试提醒，请检查 Webhook`)} catch (error) { setMessage(error instanceof Error ? error.message : String(error)) } finally { setTestingDomain(null) }
   }
   const importFile = async (file: File): Promise<void> => {
     try {
@@ -57,7 +67,7 @@ function CertificatePanel({ face, data, close }: { face: Pick<CertificateFace, '
   const saveSettings = async (): Promise<void> => {
     try { await face.save(data.certificates, { webhookProvider: provider, webhookUrl: url.trim(), notifyDays: Math.max(0, Number(notifyDays) || 0) }); setMessage('设置已保存') } catch (error) { setMessage(error instanceof Error ? error.message : String(error)) }
   }
-  const stats = { total: data.certificates.length, soon: data.certificates.filter(c => remainingDays(c.expiresAt) <= 3 && remainingDays(c.expiresAt) > 1).length, urgent: data.certificates.filter(c => remainingDays(c.expiresAt) <= 1).length }
+  const stats = { total: data.certificates.length, soon: data.certificates.filter(c => remainingDays(c.expiresAt, now) <= 3 && remainingDays(c.expiresAt, now) > 1).length, urgent: data.certificates.filter(c => remainingDays(c.expiresAt, now) <= 1).length }
   return <div className={css.scrim} role="dialog" aria-modal="true" aria-label="SSL 证书到期提醒">
     <section className={css.panel}>
       <header className={css.header}><div><h2 className={css.title}>SSL 证书到期提醒</h2><span className={css.subtitle}>手工维护域名证书到期时间 · 每天 09:00 自动检查</span></div><button type="button" style={styles.iconButton} onClick={close} aria-label="关闭">×</button></header>
@@ -66,7 +76,7 @@ function CertificatePanel({ face, data, close }: { face: Pick<CertificateFace, '
       {tab === 'records' ? <>
         <div className={css.toolbar}><input className={css.search} aria-label="搜索域名" placeholder="搜索域名" value={query} onChange={event => { setQuery(event.target.value); setPage(1) }} style={styles.input} /><button type="button" style={styles.primary} onClick={() => setDraft(emptyDraft())}>新增证书</button><button type="button" style={styles.secondary} onClick={() => importRef.current?.click()}>导入 Excel</button><button type="button" style={styles.tertiary} onClick={downloadTemplate}>下载导入模板</button><input ref={importRef} type="file" accept=".xls,.xlsx" hidden onChange={event => { const file = event.target.files?.[0]; if (file) void importFile(file); event.target.value = '' }} /><button type="button" style={styles.secondary} onClick={exportFile}>导出 Excel</button></div>
         {draft !== null && <div className={css.editor}><label className={css.field}>域名<input style={styles.input} value={draft.domain} onChange={event => setDraft({ ...draft, domain: event.target.value })} /></label><label style={styles.field}>到期时间<input type="datetime-local" style={styles.input} value={inputDate(draft.expiresAt)} onChange={event => setDraft({ ...draft, expiresAt: toIso(event.target.value) })} /></label><label style={styles.field}>备注<input style={styles.input} value={draft.remark} onChange={event => setDraft({ ...draft, remark: event.target.value })} /></label><button type="button" style={styles.primary} onClick={() => void saveDraft()}>保存</button><button type="button" style={styles.secondary} onClick={() => setDraft(null)}>取消</button></div>}
-        <div className={css.tableWrap}><table className={css.table}><thead><tr><th>域名</th><th>到期时间</th><th>剩余</th><th>备注</th><th>操作</th></tr></thead><tbody>{rows.map(cert => { const days = remainingDays(cert.expiresAt); const state = statusOf(days); return <tr key={cert.domain}><td>{cert.domain}</td><td>{formatDate(cert.expiresAt)}</td><td><span style={{ color: statusColor[state], fontWeight: 600 }}>{days <= 0 ? `已过期 ${Math.abs(days)} 天` : `${days} 天`} · {statusLabel[state]}</span></td><td>{cert.remark || '—'}</td><td><button type="button" style={styles.link} onClick={() => setDraft(cert)}>编辑</button><button type="button" style={styles.dangerLink} onClick={() => void remove(cert.domain)}>删除</button></td></tr> })}</tbody></table>{rows.length === 0 && <p style={styles.empty}>暂无证书记录</p>}</div>
+        <div className={css.tableWrap}><table className={css.table}><thead><tr><th>域名</th><th>到期时间</th><th>剩余</th><th>备注</th><th>操作</th></tr></thead><tbody>{rows.map(cert => { const days = remainingDays(cert.expiresAt, now); const state = statusOf(days); return <tr key={cert.domain}><td>{cert.domain}</td><td>{formatDate(cert.expiresAt)}</td><td><span style={{ color: statusColor[state], fontWeight: 600 }}>{days <= 0 ? `已过期 ${Math.abs(days)} 天` : `${days} 天`} · {statusLabel[state]}</span></td><td>{cert.remark || '—'}</td><td><button type="button" style={styles.link} onClick={() => setDraft(cert)}>编辑</button><button type="button" style={styles.link} disabled={testingDomain !== null} onClick={() => void testReminder(cert)}>{testingDomain === cert.domain ? '发送中…' : '测试提醒'}</button><button type="button" style={styles.dangerLink} onClick={() => void remove(cert.domain)}>删除</button></td></tr> })}</tbody></table>{rows.length === 0 && <p style={styles.empty}>暂无证书记录</p>}</div>
         <div className={css.pagination}><button type="button" style={styles.secondary} disabled={page <= 1} onClick={() => setPage(page - 1)}>上一页</button><span>第 {page} / {pages} 页</span><button type="button" style={styles.secondary} disabled={page >= pages} onClick={() => setPage(page + 1)}>下一页</button></div>
       </> : <div className={css.settingsForm}><label className={css.field}>提前通知天数<input type="number" min="0" step="1" style={styles.input} value={notifyDays} onChange={event => setNotifyDays(event.target.value)} /><small>达到阈值后，每天提醒一次。默认 1 天。</small></label><label style={styles.field}>Webhook 平台<select style={styles.input} value={provider} onChange={event => setProvider(event.target.value as SslCertificateSettings['webhookProvider'])}><option value="dingtalk">钉钉</option><option value="wecom">企业微信</option><option value="feishu">飞书</option></select></label><label style={styles.field}>Webhook 地址<input type="url" style={styles.input} value={url} onChange={event => setUrl(event.target.value)} /></label><div style={styles.actions}><button type="button" style={styles.primary} onClick={() => void saveSettings()}>保存设置</button><button type="button" style={styles.secondary} onClick={() => void face.testWebhook(provider, url).then(() => setMessage('测试消息已发送')).catch(error => setMessage(error instanceof Error ? error.message : String(error)))}>测试 Webhook</button></div></div>}
       {message && <p className={css.message} role="status">{message}</p>}

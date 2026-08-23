@@ -19,4 +19,21 @@ describe('SSL certificate reminder schedule', () => {
     expect(state.notificationLog).toEqual([{ domain: 'example.com', date: '2026-08-22' }])
     fetch.mockRestore()
   })
+
+  it('uses Feishu payloads and still checks after 09:00 when startup missed the exact minute', async () => {
+    let state = {
+      certificates: [{ domain: 'example.com', expiresAt: '2026-08-24T01:00:00.000Z', remark: '' }],
+      notifyDays: 1,
+      webhookProvider: 'feishu' as const,
+      webhookUrl: 'https://webhook.test/feishu',
+      notificationLog: [] as Array<{ domain: string; date: string }>,
+    }
+    const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }))
+    const scope = { get: () => state, update: async (patch: object) => { state = { ...state, ...patch } } }
+    await check(scope, new Date('2026-08-23T02:15:00.000Z'))
+    const request = fetch.mock.calls[0]?.[1]
+    expect(request?.body).toContain('msg_type')
+    expect(state.notificationLog).toEqual([{ domain: 'example.com', date: '2026-08-23' }])
+    fetch.mockRestore()
+  })
 })

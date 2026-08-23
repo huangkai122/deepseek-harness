@@ -2,7 +2,7 @@ import s from '@deepseek-ai/schemastery'
 import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import { DEFAULT_NOTIFY_DAYS, SSL_CERTIFICATES_NAMESPACE, WEBHOOK_PROVIDERS, type SslCertificateSettings } from './types.ts'
 
-export { DEFAULT_NOTIFY_DAYS, DEFAULT_TIME_ZONE, DEFAULT_CHECK_TIME, SSL_CERTIFICATES_NAMESPACE, WEBHOOK_PROVIDERS, localDate, remainingDays, statusOf } from './types.ts'
+export { DEFAULT_NOTIFY_DAYS, DEFAULT_TIME_ZONE, DEFAULT_CHECK_TIME, SSL_CERTIFICATES_NAMESPACE, WEBHOOK_PROVIDERS, formatLocalDateTime, localDate, remainingDays, statusOf } from './types.ts'
 export type { CertificateRecord, NotificationRecord, SslCertificateSettings, WebhookProvider } from './types.ts'
 export const SSL_CERTIFICATES_NS = settingsNamespace(SSL_CERTIFICATES_NAMESPACE)
 export const SslCertificateSettingsSchema: s<SslCertificateSettings> = s.object({
