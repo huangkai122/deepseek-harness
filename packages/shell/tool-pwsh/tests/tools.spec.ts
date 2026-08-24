@@ -564,11 +564,11 @@ describe('sandbox escalation through ctx.approval', () => {
     expect(schema.description).toContain('fails with EPERM')
 
     for (const args of [
-      { command: 'Write-Output ok', description: 'd', sandbox_permissions: 'workspace-write' },
+      { command: 'Write-Output ok', description: 'd', sandbox_permissions: 'danger-full-access' },
       { command: 'Write-Output ok', description: 'd', justification: 'why' },
-      { command: 'Write-Output ok', description: 'd', sandbox_permissions: 'workspace-write', justification: ' ' },
+      { command: 'Write-Output ok', description: 'd', sandbox_permissions: 'danger-full-access', justification: ' ' },
     ]) {
-      expect((await call(ctx, 'pwsh', args)).isError).toBe(true)
+      expect((await call(ctx, 'pwsh', args, sandboxAgent('workspace-write'))).isError).toBe(true)
     }
   })
 
@@ -581,15 +581,15 @@ describe('sandbox escalation through ctx.approval', () => {
     expect(schema.parameters.properties).not.toHaveProperty('sandbox_permissions')
   })
 
-  it('rejects injected escalation without a sandbox and non-widening escalation without prompting', async () => {
+  it('rejects injected escalation without a sandbox and keeps Full access without prompting', async () => {
     const plain = await setup()
     expect(text(await call(plain.ctx, 'pwsh', escalate))).toContain('not available in this composition')
 
     const { ctx } = await setupSandboxed(true)
     const prompted = vi.fn()
     ctx.on('approval/request', () => { prompted(); return Promise.resolve<ApprovalOutcome>('allowed-once') })
-    const result = await call(ctx, 'pwsh', { ...escalate, sandbox_permissions: 'workspace-write' }, sandboxAgent('workspace-write'))
-    expect(text(result)).toContain('not strictly wider')
+    const result = await call(ctx, 'pwsh', { ...escalate, sandbox_permissions: 'workspace-write' }, sandboxAgent('danger-full-access'))
+    expect(text(result)).toContain('ok')
     expect(prompted).not.toHaveBeenCalled()
 
     const malformed = sandboxAgent()

@@ -84,11 +84,27 @@ describe('approveEscalation', () => {
   it('a non-widening request fails closed with its own text and never asks', async () => {
     const seen: unknown[] = []
     const spy = ingredients({ approver: approver('allowed-once', r => seen.push(r)) })
-    await expect(approveEscalation(req({ requestedMode: 'read-only' }), spy))
-      .rejects.toThrow(/not strictly wider than this call's current "read-only" mode/)
-    await expect(approveEscalation(req({ requestedMode: 'workspace-write', effectiveMode: 'danger-full-access' as never }), spy))
+    await expect(approveEscalation(req({ requestedMode: 'read-only', effectiveMode: 'workspace-write' as const }), spy))
+      .rejects.toThrow(/not strictly wider than this call's current "workspace-write" mode/)
+    await expect(approveEscalation(req({ requestedMode: 'read-only', effectiveMode: 'danger-full-access' as never }), spy))
       .rejects.toThrow(/not strictly wider/)
     expect(seen).toEqual([])
+  })
+
+  it('treats a request for the current mode as a no-op without approval', async () => {
+    const granted = await approveEscalation(
+      req({ requestedMode: 'danger-full-access', effectiveMode: 'danger-full-access' as const }),
+      ingredients({ approver: undefined }),
+    )
+    expect(granted).toBe('danger-full-access')
+  })
+
+  it('keeps Full access when a caller redundantly names workspace-write', async () => {
+    const granted = await approveEscalation(
+      req({ requestedMode: 'workspace-write', effectiveMode: 'danger-full-access' as const }),
+      ingredients({ approver: undefined }),
+    )
+    expect(granted).toBe('danger-full-access')
   })
 
   it('a missing approval service and an agent-less call each fail closed with distinct text', async () => {

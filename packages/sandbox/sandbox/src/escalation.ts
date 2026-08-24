@@ -156,6 +156,14 @@ export interface EscalationRequest {
  */
 export async function approveEscalation<A, C>(request: EscalationRequest, approval: EscalationApproval<A, C>): Promise<SandboxMode> {
   const { requestedMode: mode, effectiveMode, justification, subject } = request
+  // Tool schemas are composition-global, while the effective mode is per call.
+  // A model can repeat the current session mode explicitly, or name a
+  // narrower mode while the call already has Full access. Neither request
+  // needs approval: the standing policy already provides at least what was
+  // requested, and the operation must not be downgraded for one call.
+  if (mode === effectiveMode || (effectiveMode === 'danger-full-access' && mode === 'workspace-write')) {
+    return effectiveMode
+  }
   // Strict widening is an EXECUTION check against the call's effective mode —
   // deliberately not a schema constraint (the enum is the closed target
   // vocabulary; the effective mode is per-call truth).
