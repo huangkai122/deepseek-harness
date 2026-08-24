@@ -71,6 +71,7 @@ export function UserCenterTrigger({ wide, useUser, setup, login, logout, refresh
     )
   }
   const handleSettings = (): void => {
+    setProfileOpen(false)
     window.dispatchEvent(new Event('dsh-settings-open'))
     openSettings?.()
   }
@@ -78,18 +79,20 @@ export function UserCenterTrigger({ wide, useUser, setup, login, logout, refresh
   if (user === undefined) return null
   return (
     <>
-      <button type="button" aria-haspopup="menu" aria-expanded={!profileOpen} onClick={() => { setProfileOpen(value => !value) }} style={wide ? styles.trigger : styles.railTrigger} title={user.nickname}>
+      <button type="button" aria-haspopup="menu" aria-expanded={profileOpen} onClick={() => { setProfileOpen(value => !value) }} style={wide ? styles.trigger : styles.railTrigger} title={user.nickname}>
         <Avatar nickname={user.nickname} avatarUrl={user.avatarUrl} />{wide && <span style={styles.nickname}>{user.nickname}</span>}
       </button>
-      {profileOpen && (
-        <div style={styles.menu} role="menu">
-          <div style={styles.identity}><Avatar nickname={user.nickname} avatarUrl={user.avatarUrl} large /><div><strong>{user.nickname}</strong><small>本地账户</small></div><button type="button" aria-label="关闭" style={styles.iconButton} onClick={() => { setProfileOpen(false) }}><IconCloseOutline16 size={16} /></button></div>
-          <button type="button" role="menuitem" style={styles.menuItem} onClick={() => { setProfileOpen(false); setProfileName(user.nickname); setAvatarUrl(user.avatarUrl ?? ''); setProfileError(''); setProfileDialogOpen(true) }}><IconUserOutline16 size={17} /><span>个人资料</span></button>
-          <div style={styles.extensionItems}>{renderSlot('user-center.menu.entry', {}, { fallback: null })}</div>
-          <button type="button" role="menuitem" style={styles.menuItem} onPointerDownCapture={event => { event.stopPropagation(); handleSettings() }} onClick={() => { setProfileOpen(false) }}><IconSettingsOutline16 size={17} /><span>设置</span></button>
-          <button type="button" role="menuitem" style={{ ...styles.menuItem, ...styles.danger }} onClick={() => { setProfileOpen(false); void logout() }}><IconPersonalizationOutline16 size={17} /><span>退出登录</span></button>
-        </div>
-      )}
+      <div
+        style={{ ...styles.menu, ...(profileOpen ? {} : styles.menuHidden) }}
+        role="menu"
+        aria-hidden={!profileOpen}
+      >
+        <div style={styles.identity}><Avatar nickname={user.nickname} avatarUrl={user.avatarUrl} large /><div><strong>{user.nickname}</strong><small>本地账户</small></div><button type="button" aria-label="关闭" style={styles.iconButton} onClick={() => { setProfileOpen(false) }}><IconCloseOutline16 size={16} /></button></div>
+        <button type="button" role="menuitem" style={styles.menuItem} onClick={() => { setProfileOpen(false); setProfileName(user.nickname); setAvatarUrl(user.avatarUrl ?? ''); setProfileError(''); setProfileDialogOpen(true) }}><IconUserOutline16 size={17} /><span>个人资料</span></button>
+        <div style={styles.extensionItems} onClick={() => { setProfileOpen(false) }}>{renderSlot('user-center.menu.entry', {}, { fallback: null })}</div>
+        <button type="button" role="menuitem" style={styles.menuItem} onClick={handleSettings}><IconSettingsOutline16 size={17} /><span>设置</span></button>
+        <button type="button" role="menuitem" style={{ ...styles.menuItem, ...styles.danger }} onClick={() => { setProfileOpen(false); void logout() }}><IconPersonalizationOutline16 size={17} /><span>退出登录</span></button>
+      </div>
       {profileDialogOpen && createPortal(
         <div style={styles.profileDialog} role="dialog" aria-modal="true" aria-label="个人资料">
           <div style={styles.profileHeader}><strong>个人资料</strong><button type="button" aria-label="关闭" style={styles.iconButton} onClick={() => { setProfileDialogOpen(false) }}><IconCloseOutline16 size={16} /></button></div>
@@ -123,6 +126,7 @@ const styles: Record<string, React.CSSProperties> = {
   primaryButton: { minHeight: 36, border: 0, borderRadius: 8, background: 'var(--dsw-alias-interactive-bg-active)', color: 'var(--dsw-alias-label-primary)', fontWeight: 600, cursor: 'pointer' },
   error: { color: 'var(--dsw-alias-label-danger, #dc2626)', fontSize: 11, lineHeight: 1.4 },
   menu: { position: 'fixed', left: 12, bottom: 64, zIndex: 99999, pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: 3, width: 264, padding: 8, border: '1px solid var(--dsw-alias-border-primary)', borderRadius: 12, background: 'var(--dsw-alias-bg-layer-2)', boxShadow: 'var(--dsw-shadow-lv3)', color: 'var(--dsw-alias-label-primary)' },
+  menuHidden: { display: 'none' },
   identity: { display: 'flex', alignItems: 'center', gap: 10, padding: 8, marginBottom: 4, borderBottom: '1px solid var(--dsw-alias-border-primary)' },
   avatarLarge: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 38, height: 38, borderRadius: '50%', background: 'var(--dsw-alias-interactive-bg-active)', fontWeight: 600 },
   iconButton: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginLeft: 'auto', width: 32, height: 32, border: 0, borderRadius: 7, background: 'transparent', color: 'inherit', cursor: 'pointer' },

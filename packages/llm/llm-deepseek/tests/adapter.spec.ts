@@ -147,7 +147,28 @@ describe('DeepSeekAdapter against a mock server', () => {
     expect(signalSeen[0]).toBeInstanceOf(AbortSignal)
   })
 
-  it.each(['deepseek-v4-flash', 'unlisted-pass-through'])(
+  it('accepts images for a known vision model from an older text-only catalog', async () => {
+    const server = await mockServer([{ kind: 'sse', events: textEvents }])
+    const attachments = {
+      readImage: vi.fn(() => Promise.resolve({ ref: imageRef, data: Uint8Array.of(1, 2, 3) })),
+    } as unknown as AttachmentStore
+    const adapter = adapterOf({
+      baseURL: server.url,
+      models: [{ id: 'deepseek-v4-flash', inputModalities: ['text'] }],
+    }, attachments)
+
+    await drain(adapter.stream({
+      provider: 'deepseek-official',
+      model: 'deepseek-v4-flash',
+      messages: [createUserMessage({
+        content: [{ type: 'image', attachment: imageRef }],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    }))
+
+    expect(server.requests[0]).toMatchObject({ model: 'deepseek-v4-flash' })
+  })
+  it.each(['private-text-only', 'unlisted-pass-through'])(
     'rejects image input for text-only model %s before credentials, attachments, or fetch',
     async (model) => {
       const server = await mockServer([])
@@ -766,8 +787,8 @@ describe('plugin registration and config', () => {
     await ctx.plugin(LlmDeepSeek, { baseURL: 'http://127.0.0.1:1' })
     expect(ctx.llm.listProviders()).toEqual([{ id: 'deepseek-official', name: 'DeepSeek' }])
     await expect(ctx.llm.listModels('deepseek-official')).resolves.toEqual([
-      { provider: 'deepseek-official', id: 'deepseek-v4-flash', name: 'DeepSeek-V4-Flash', inputModalities: ['text'] },
-      { provider: 'deepseek-official', id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro', inputModalities: ['text'] },
+      { provider: 'deepseek-official', id: 'deepseek-v4-flash', name: 'DeepSeek-V4-Flash', inputModalities: ['text', 'image'] },
+      { provider: 'deepseek-official', id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro', inputModalities: ['text', 'image'] },
     ])
     await expect(ctx.llm.resolveModelInfo('deepseek-official', 'deepseek-v4-flash'))
       .resolves.toMatchObject({
@@ -863,12 +884,12 @@ describe('plugin registration and config', () => {
     await ctx.plugin(LlmRuntime)
     LlmDeepSeek.apply(ctx, { baseURL: 'http://127.0.0.1:1' })
     await expect(ctx.llm.listModels('deepseek-official')).resolves.toEqual([
-      { provider: 'deepseek-official', id: 'deepseek-v4-flash', name: 'DeepSeek-V4-Flash', inputModalities: ['text'] },
-      { provider: 'deepseek-official', id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro', inputModalities: ['text'] },
+      { provider: 'deepseek-official', id: 'deepseek-v4-flash', name: 'DeepSeek-V4-Flash', inputModalities: ['text', 'image'] },
+      { provider: 'deepseek-official', id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro', inputModalities: ['text', 'image'] },
     ])
   })
 
-  it('defaults an adapter-supplied catalog entry to text input', async () => {
+  it('defaults an adapter-supplied catalog entry to image-capable input', async () => {
     const connection = resolveAdapterOptions({ models: [] })
     const adapter = new DeepSeekAdapter({
       options: () => ({ ...connection, models: [{ id: 'adapter-model' }] }),
@@ -879,7 +900,7 @@ describe('plugin registration and config', () => {
       provider: 'deepseek-official',
       id: 'adapter-model',
       name: 'adapter-model',
-      inputModalities: ['text'],
+       inputModalities: ['text', 'image'],
     }])
   })
 
@@ -900,7 +921,7 @@ describe('plugin registration and config', () => {
       ],
     })
     await expect(ctx.llm.listModels('deepseek-official')).resolves.toEqual([
-      { provider: 'deepseek-official', id: 'private-fast', name: 'private-fast', inputModalities: ['text'] },
+      { provider: 'deepseek-official', id: 'private-fast', name: 'private-fast', inputModalities: ['text', 'image'] },
       { provider: 'deepseek-official', id: 'private-reasoner', name: 'Private Reasoner', description: 'Higher reasoning budget', inputModalities: ['text', 'image'] },
     ])
     await expect(ctx.llm.resolveModelInfo('deepseek-official', 'private-fast'))

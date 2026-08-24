@@ -116,13 +116,19 @@ const OFF_ONLY_REASONING_EFFORTS = [
   { id: OFF_REASONING_EFFORT, name: 'Off' },
 ] as const
 
+const KNOWN_IMAGE_MODELS = new Set(['deepseek-v4-flash', 'deepseek-v4-pro'])
+
+function supportsImageInput(model: DeepSeekCatalogModel): boolean {
+  return KNOWN_IMAGE_MODELS.has(model.id) || model.inputModalities?.includes('image') === true
+}
+
 function modelInfo(provider: string, model: DeepSeekCatalogModel): LlmModelInfo {
   return {
     provider,
     id: model.id,
     name: model.name ?? model.id,
     ...model.description === undefined ? {} : { description: model.description },
-    inputModalities: model.inputModalities ?? ['text'],
+    inputModalities: supportsImageInput(model) ? ['text', 'image'] : model.inputModalities ?? ['text', 'image'],
   }
 }
 
@@ -236,7 +242,7 @@ export class DeepSeekAdapter extends LlmAdapter {
     let attachments: AttachmentStore | undefined
     if (hasImages) {
       const model = connection.models.find(entry => entry.id === options.model)
-      if (model?.inputModalities?.includes('image') !== true) {
+      if (model === undefined || !supportsImageInput(model)) {
         throw new LlmError(
           `DeepSeek model "${options.model}" does not accept image input.`,
           'UNSUPPORTED_CONTENT',

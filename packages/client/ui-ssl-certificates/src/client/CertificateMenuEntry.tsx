@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as XLSX from 'xlsx/xlsx.mjs'
 import { IconGlobeOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -87,7 +88,7 @@ function CertificatePanel({ face, data, close }: { face: Pick<CertificateFace, '
 export function CertificateMenuEntry(props: Props) {
   const [open, setOpen] = useState(false)
   const data = props.useCertificates(value => value)
-  return <><button type="button" role="menuitem" style={styles.menuItem} onClick={() => setOpen(true)}><IconGlobeOutline14 size={17} /><span>SSL 证书提醒</span></button>{open && <CertificatePanel face={props} data={data} close={() => setOpen(false)} />}</>
+  return <><button type="button" role="menuitem" style={styles.menuItem} onClick={() => setOpen(true)}><IconGlobeOutline14 size={17} /><span>SSL 证书提醒</span></button>{open && createPortal(<CertificatePanel face={props} data={data} close={() => setOpen(false)} />, document.body)}</>
 }
 
 const styles: Record<string, React.CSSProperties> = {
