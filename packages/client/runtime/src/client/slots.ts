@@ -399,7 +399,7 @@ export class SlotRegistry extends Service {
     // alias is required: `this` inside the getter is the host literal.
     // oxlint-disable-next-line typescript/no-this-alias
     const service = this
-    this._host = {
+    const host: SlotRendererHost = {
       subscribe: (key, fn) => this._core.subscribe(key, fn),
       getVersion: key => this._core.getVersion(key),
       entriesOf: key => this._core.entries(key),
@@ -416,7 +416,8 @@ export class SlotRegistry extends Service {
       workspaces: { list: workspaces.list },
       get locale() { return service._locale },
     }
-    return this._host
+    this._host = host
+    return host
   }
 
   /** Resolve (create or reuse) the store instance for a registered handle under a scope key. */

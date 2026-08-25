@@ -235,7 +235,12 @@ export class PostgresqlConnector implements DbConnector {
       for (const op of operations) {
         const startTime = Date.now()
         try {
-          const result = await client.query(op.sql, op.params)
+          const queryResult = await client.query(op.sql, op.params)
+          // PostgreSQL returns one result per statement when an operation
+          // contains multiple SQL statements, such as a schema migration.
+          const queryResults = Array.isArray(queryResult) ? queryResult : [queryResult]
+          const result = queryResults.at(-1)
+          if (result === undefined) throw new Error('PostgreSQL operation returned no result')
 
           // Determine if this is a query or command
           const isQuery = op.sql.trim().toUpperCase().startsWith('SELECT') ||
@@ -250,7 +255,7 @@ export class PostgresqlConnector implements DbConnector {
           } else {
             results.push({
               success: true,
-              affectedRows: result.rowCount ?? 0,
+              affectedRows: queryResults.reduce((total, item) => total + (item.rowCount ?? 0), 0),
               ...(result.rows.length > 0 ? { rows: result.rows } : {}),
               duration: Date.now() - startTime,
             })

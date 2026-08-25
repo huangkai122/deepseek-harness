@@ -43,7 +43,9 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * Optional actions beside Settings at the sidebar foot. Declared by this
      * package's 'sidebar' entry; each action receives only the column state.
      */
-    'sidebar.footer.action': { kind: 'list'; scope: 'root'; owner: SidebarFooterActionOwnerProps }
+         'sidebar.new-session.action': { kind: 'list'; scope: 'root'; owner: SidebarFooterActionOwnerProps }
+     'sidebar.footer.action': { kind: 'list'; scope: 'root'; owner: SidebarFooterActionOwnerProps }
+
   }
 }
 
@@ -113,6 +115,7 @@ export type SidebarRootComponentProps =
     | 'sidebar.brand.name'
     | 'sidebar.workspaces'
     | 'sidebar.settings'
-    | 'sidebar.footer.action'
+    | 'sidebar.new-session.action'
+     | 'sidebar.footer.action'
   >
   & SidebarRootInjected & PropsLocale<'sidebar'>

@@ -113,6 +113,15 @@
     - id: db-redis
       name: '@deepseek-ai/dsh-db-redis'
 
+    # Host service for the browser task board. The service owns the PostgreSQL
+    # schema and publishes remote.taskManagement for the client plugin below.
+    - id: task-management
+      name: '@deepseek-ai/dsh-task-management'
+      config:
+        databaseConnection: localhost-postgreSQL
+        workerId: web-task-worker
+        schema: dsh_task_management
+
     # The API gateway: the transport-agnostic dispatch face every client shape
     # shares. The base layer's agent-default-model service owns the default model.
     - id: api-gateway
@@ -286,6 +295,10 @@
     # Goal surface: GoalBar in the input dock over the goal session projection.
     - id: ui-goal
       name: '@deepseek-ai/dsh-client-ui-goal'
+
+    # Task board: directory-first five-column view over task-management Remote.
+    - id: ui-task-management
+      name: '@deepseek-ai/dsh-client-ui-task-management'
 
     # Per-message feedback: Like/Dislike plus an optional note in the
     # assistant-message action strip, over the messageFeedback Remote.

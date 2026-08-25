@@ -266,8 +266,19 @@
   background: var(--dsw-alias-interactive-bg-hover);
 }
 
+.newSessionActions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 2px 8px;
+}
+
+.newSessionActions:empty {
+  display: none;
+}
+
 .newSessionLabel {
-  max-width: 200px;
+
   overflow: hidden;
   white-space: nowrap;
 }

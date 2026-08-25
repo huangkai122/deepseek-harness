@@ -186,6 +186,9 @@ export function SidebarRoot({
           {wide && <span className={clsx(css.newSessionLabel, css.wide)}>{t('session.new')}</span>}
         </button>
       </Tooltip>
+      <div className={css.newSessionActions}>
+        {renderSlot('sidebar.new-session.action', { wide })}
+      </div>
 
       {/* The browsing region fills the column between the controls and the
           foot in both states; its rail icon column rides the same slot. */}

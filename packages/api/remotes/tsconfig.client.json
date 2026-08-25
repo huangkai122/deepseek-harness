@@ -58,6 +58,9 @@
       "path": "../../settings/settings"
     },
     {
+      "path": "../../task/task-management"
+    },
+    {
       "path": "../../typert/protocol"
     }
   ]

@@ -87,7 +87,9 @@ export function UserCenterTrigger({ wide, useUser, setup, login, logout, refresh
         role="menu"
         aria-hidden={!profileOpen}
       >
-        <div style={styles.identity}><Avatar nickname={user.nickname} avatarUrl={user.avatarUrl} large /><div><strong>{user.nickname}</strong><small>本地账户</small></div><button type="button" aria-label="关闭" style={styles.iconButton} onClick={() => { setProfileOpen(false) }}><IconCloseOutline16 size={16} /></button></div>
+        <div style={styles.identity}><Avatar nickname={user.nickname} avatarUrl={user.avatarUrl} large /><div><strong>{user.nickname}</strong>
+        {/* <small>本地账户</small> */}
+        </div><button type="button" aria-label="关闭" style={styles.iconButton} onClick={() => { setProfileOpen(false) }}><IconCloseOutline16 size={16} /></button></div>
         <button type="button" role="menuitem" style={styles.menuItem} onClick={() => { setProfileOpen(false); setProfileName(user.nickname); setAvatarUrl(user.avatarUrl ?? ''); setProfileError(''); setProfileDialogOpen(true) }}><IconUserOutline16 size={17} /><span>个人资料</span></button>
         <div style={styles.extensionItems} onClick={() => { setProfileOpen(false) }}>{renderSlot('user-center.menu.entry', {}, { fallback: null })}</div>
         <button type="button" role="menuitem" style={styles.menuItem} onClick={handleSettings}><IconSettingsOutline16 size={17} /><span>设置</span></button>
@@ -96,7 +98,9 @@ export function UserCenterTrigger({ wide, useUser, setup, login, logout, refresh
       {profileDialogOpen && createPortal(
         <div style={styles.profileDialog} role="dialog" aria-modal="true" aria-label="个人资料">
           <div style={styles.profileHeader}><strong>个人资料</strong><button type="button" aria-label="关闭" style={styles.iconButton} onClick={() => { setProfileDialogOpen(false) }}><IconCloseOutline16 size={16} /></button></div>
-          <div style={styles.profileBody}><Avatar nickname={profileName || user.nickname} avatarUrl={avatarUrl} large /><div><strong>{profileName || user.nickname}</strong><small>本地账户</small></div></div>
+          <div style={styles.profileBody}><Avatar nickname={profileName || user.nickname} avatarUrl={avatarUrl} large /><div><strong>{profileName || user.nickname}</strong>
+          {/* <small>本地账户</small> */}
+          </div></div>
           <div style={styles.profileForm}>
             <label style={styles.field}><span>用户名</span><input value={profileName} onChange={e => setProfileName(e.target.value)} /></label>
             <label style={styles.field}><span>头像地址</span><input value={avatarUrl} onChange={e => setAvatarUrl(e.target.value)} placeholder="可选的图片 URL" /></label>

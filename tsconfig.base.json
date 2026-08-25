@@ -164,6 +164,11 @@
       // tsconfig.client.json) stay explicit — TS project references have no
       // wildcard form.
       "@deepseek-ai/dsh-host-apiproxy": ["./packages/host/apiproxy/src"],
+      "@deepseek-ai/dsh-task-management": ["./packages/task/task-management/src"],
+      "@deepseek-ai/dsh-task-management/*": ["./packages/task/task-management/src/*"],
+      "@deepseek-ai/dsh-db-connector": ["./packages/db/capability/db-connector/src"],
+       "@deepseek-ai/dsh-db-connector/*": ["./packages/db/capability/db-connector/src/*"],
+      "@deepseek-ai/dsh-db-connector/types": ["./packages/db/capability/db-connector/src/types.ts"],
       "@deepseek-ai/dsh-host-directory-picker": ["./packages/host/directory-picker/src"],
       "@deepseek-ai/dsh-host-directory-picker/*": ["./packages/host/directory-picker/src/*"],
       "@deepseek-ai/dsh-host-directory-picker-browse": ["./packages/host/directory-picker-browse/src"],

@@ -9,6 +9,9 @@
   ],
   "references": [
     {
+      "path": "../../db/capability/db-connector"
+    },
+    {
       "path": "../../goal/goal"
     },
     {

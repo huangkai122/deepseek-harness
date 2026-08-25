@@ -24,21 +24,6 @@
       "path": "../../interaction/commands"
     },
     {
-      "path": "../../core/agent"
-    },
-    {
-      "path": "../../core/tools"
-    },
-    {
-      "path": "../../compaction/compaction"
-    },
-    {
-      "path": "../../session/session-projection"
-    },
-    {
-      "path": "../../session/session-title"
-    },
-    {
       "path": "../../llm/llm"
     },
     {

@@ -1,0 +1,21 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "composite": true
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../../../vendor/cordis" },
+    { "path": "../../../vendor/schemastery" },
+    { "path": "../../db/capability/db-connector" },
+    { "path": "../../core/agent" },
+    { "path": "../../core/session" },
+    { "path": "../../llm/llm" },
+    { "path": "../../typert/protocol" },
+    { "path": "../../settings/settings" },
+    { "path": "../../shell/shell" },
+    { "path": "../../util/brand" }
+  ]
+}
