@@ -337,9 +337,28 @@ describe('scenario: reference decoration lights up when the lexicon settles', ()
     const mark = b.view.container.querySelector('[data-decoration="text-ref"]')
     expect(mark?.textContent).toBe('/deploy')
   })
-})
+  it('deletes a typed slash skill token as one unit', async () => {
+    let notify: (() => void) | undefined
+    const b = await scopedBench((inputTriggers) => {
+      inputTriggers.registerSource({
+        trigger: '/', name: 'skill',
+        candidates: () => Promise.resolve([]),
+        onPick: () => undefined,
+        lexicon: () => ['deploy'],
+        subscribeLexicon: (_session: ClientSessionContext, listener: () => void) => {
+          notify = listener
+          return () => { notify = undefined }
+        },
+      } as never)
+    })
+    b.type('/deploy')
+    act(() => { notify?.() })
+    b.textarea.setSelectionRange(7, 7)
+    fireEvent.keyDown(b.textarea, { key: 'Backspace' })
+    expect(b.textarea.value).toBe('')
+  })
 
-describe('scenario I: unknown /xyz + enter', () => {
+
   it('adjudication misses in one hop and the whole line rides the default sink', async () => {
     const b = await bench()
     act(() => { b.shell.setDraft('/xyz 干点啥') })

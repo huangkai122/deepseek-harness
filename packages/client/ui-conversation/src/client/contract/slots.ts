@@ -327,6 +327,8 @@ export interface ConvViewOwnerProps {
   inspect?: { callId: CallId } | null
   /** Acknowledge the inspect request once applied (clears the store field). */
   onInspectDone?: () => void
+  /** Return to the chat view after a view-specific action. */
+  onNavigateChat?: () => void
 }
 
 /**

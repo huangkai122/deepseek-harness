@@ -420,8 +420,9 @@
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
-.textRef:after {
-  display: none;
+.textRef[data-reference-trigger="/"] {
+  border-radius: 999px;
+  background: var(--dsw-alias-interactive-bg-active);
 }
 
 .textRefTrigger {
@@ -464,6 +465,12 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+}
+
+.chip[data-skill-chip="true"] {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-module-platform);
 }
 
 .chipInvalid {

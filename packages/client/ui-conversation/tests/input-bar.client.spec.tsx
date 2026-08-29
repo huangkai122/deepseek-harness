@@ -1182,6 +1182,18 @@ describe('decorations', () => {
     expect(shell.snapshot.occurrences[0]).toMatchObject({ offset: 3, length: 4 })
   })
 
+  it('marks skill references for their compact pill presentation', () => {
+    const { view, shell } = bench()
+    act(() => {
+      shell.setDraft('/brainstorming')
+      shell.insertReference({
+        source: 'reference', ref: 'brainstorming', label: 'brainstorming', appearance: 'skill', clipboardText: '/brainstorming',
+      }, { start: 0, end: 13, draftRev: shell.snapshot.draftRev })
+    })
+    const chip = view.container.querySelector('[data-decoration="chip"]')
+    expect(chip?.getAttribute('data-reference-appearance')).toBe('skill')
+    expect(chip?.getAttribute('data-skill-chip')).toBe('true')
+  })
   it('keeps the textarea glyph layer transparent when a structured reference becomes disabled', () => {
     const { view, shell, session, textarea } = bench()
     act(() => {

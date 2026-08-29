@@ -280,20 +280,54 @@ describe('a capability the session\'s preset mounts', () => {
     await api.sessions.create(request({ sessionId: SessionId('k1'), agentPreset: 'standard' }))
     services.set('k1', {
       skills: {
-        list: () => Promise.resolve([{
-          name: 'preset-owned',
-          description: 'ships inside the preset directory',
-          invocation: { modelInvocable: true, userInvocable: true },
-        }]),
+        list: () => Promise.resolve([
+          {
+            name: 'preset-owned',
+            description: 'ships inside the preset directory',
+            invocation: { modelInvocable: true, userInvocable: true },
+          },
+          {
+            name: 'dsh-internal',
+            description: 'DeepSeek Harness internal skill',
+            source: 'project-agents',
+            invocation: { modelInvocable: true, userInvocable: true },
+          },
+          {
+            name: 'dsh-badge',
+            description: 'Bundled DSH skill',
+            source: 'bundled',
+            invocation: { modelInvocable: true, userInvocable: true },
+          },
+        ]),
       },
     })
 
     const response = await api.skills.list(request({ sessionId: SessionId('k1') }))
 
-    // A preset ships its own skill directory, so the catalog IS the
-    // session's; reading a host singleton would answer for the wrong one.
+    // DSH-owned entries are implementation skills, not user-facing catalog items.
     expect(response.result).toMatchObject({ ok: true, value: { skills: [{ name: 'preset-owned' }] } })
     services.delete('k1')
+  })
+
+  it('"不会把用户目录里的新技能困在旧的会话缓存中"', async () => {
+    const { api } = await harness(['standard'])
+    await api.sessions.create(request({ sessionId: SessionId('k-refresh'), agentPreset: 'standard' }))
+    let current = [{
+      name: 'old-skill',
+      description: 'old',
+      invocation: { modelInvocable: true, userInvocable: true },
+    }]
+    services.set('k-refresh', { skills: { list: () => Promise.resolve(current) } })
+    const first = await api.skills.list(request({ sessionId: SessionId('k-refresh') }))
+    current = [{
+      name: 'superpowers',
+      description: 'new',
+      invocation: { modelInvocable: true, userInvocable: true },
+    }]
+    const second = await api.skills.list(request({ sessionId: SessionId('k-refresh') }))
+    expect(first.result).toMatchObject({ ok: true, value: { skills: [{ name: 'old-skill' }] } })
+    expect(second.result).toMatchObject({ ok: true, value: { skills: [{ name: 'superpowers' }] } })
+    services.delete('k-refresh')
   })
 
   it('says so when no composition mounts the capability at all', async () => {

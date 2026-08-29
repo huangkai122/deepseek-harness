@@ -3161,7 +3161,9 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         // '/' popup lists the catalog its composition actually serves.
         const scope = await presenterScopeFor(sessionId, session)
         try {
-          const skills = (await skillRegistry.list({ cwd, scope })).filter(isUserInvocable)
+          const skills = (await skillRegistry.list({ cwd, scope }))
+            .filter(isUserInvocable)
+            .filter(skill => skill.source !== 'bundled' && !skill.name.startsWith('dsh-'))
           return ok(request, {
             skills: skills.map(skill => ({
               name: skill.name,

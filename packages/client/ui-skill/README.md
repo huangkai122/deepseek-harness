@@ -9,8 +9,9 @@ A pick lands the literal `/name ` text and the prompt ships the same literal ([s
 A failed `skill.list` throws from `candidates`, which the slash shell logs and folds into a silent menu-group drop — the menu shows only pending/ready states.
 
 The `/client` exports are the plugin body (`apply`/`inject`) only; the source object is internal to the registration effect.
+The sidebar skill library and the Skills conversation view use the same catalog. Opening the library invalidates the current session cache before loading, so skills installed in the user agent directory (`~/.agents/skills`) appear without reconnecting. The user-facing catalog excludes DSH-owned `dsh-*` and bundled entries; model-facing skill instructions remain independent of this presentation filter. The library also provides browser-local groups, tags, and recent-use ordering.
 
-## Skill tool row
+
 
 The browser plugin also registers the `skill` wire name in `ui-tool`'s keyed `tool.call.toolview` slot. A collapsed row renders the 14-pixel skill document-and-sparkle glyph, `Skill` title, separator, and requested skill name with the same neutral hierarchy as the Bash row; running calls carry the transcript shimmer, failures replace the name with the first error line, and interrupted calls use the warning state. A settled row expands as one whole-row disclosure into a bounded `Instructions` card containing the exact durable tool output, with the standard trajectory `Inspect` affordance when available. The row derives its name, lifecycle, and body only from the frozen call/result slice supplied by `ui-tool`, never from the current catalog, so replay remains stable when installed skills or their descriptions change.
 

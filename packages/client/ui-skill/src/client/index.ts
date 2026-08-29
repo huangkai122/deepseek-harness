@@ -35,6 +35,11 @@ import type { ClientContext, ISessions } from '@deepseek-ai/dsh-client-runtime/c
 import type { InputTriggerServiceContract, InputTriggerSource } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
+import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import { SkillMenuEntry } from './SkillMenuEntry.tsx'
+import { SkillView } from './SkillView.tsx'
+import type { SkillLibraryInjected } from './SkillLibrary.tsx'
 import { SkillRow } from './SkillRow.tsx'
 import { en, NS, zh, type SkillKey } from './locales.ts'
 
@@ -188,4 +193,44 @@ export function apply(ctx: ClientContext): void {
       clearAll()
     }
   }, 'ui-skill: source')
+
+  // The library is an explicit discovery surface: refresh its session key on
+  // every open so skills installed outside the running session appear without
+  // requiring a reconnect. Keep this callback stable for component effects.
+  const loadLibrary = (sessionId: SessionId): Promise<readonly SkillEntry[]> => {
+    invalidate(sessionId)
+    return fetchCatalog(sessionId)
+  }
+
+  const libraryFace = (): SkillLibraryInjected => ({
+    load: loadLibrary,
+    startSession: () => {
+      const workspaces = ctx.get('workspaces') as { startSession: () => void } | undefined
+      if (workspaces === undefined) throw new Error('ui-skill: workspaces service unavailable')
+      workspaces.startSession()
+    },
+    setDraft: (sessionId, text) => {
+      const scoped = sessions.scope(sessionId)
+      if (scoped === undefined) throw new Error(`ui-skill: session "${sessionId}" resolved no scope`)
+      const conversation = scoped.get('conversation') as { input: { for: (ctx: ClientContext) => { setDraft: (value: string) => void } } } | undefined
+      if (conversation === undefined) throw new Error('ui-skill: conversation service unavailable')
+      sessions.open(sessionId)
+      conversation.input.for(scoped).setDraft(text)
+    },
+  })
+
+  ctx.slots.inject('sidebar.new-session.action', () => ctx.slots.register({
+    name: 'sidebar.new-session.action',
+    id: 'skill-library',
+    order: 20,
+    inject: libraryFace,
+  }, SkillMenuEntry))
+  ctx.slots.inject('conversation.view', () => ctx.slots.register({
+    name: 'conversation.view',
+    id: 'skills',
+    order: -10,
+    label: () => ctx.locale.bind(NS)('view.skills'),
+    locale: NS,
+    inject: libraryFace,
+  }, SkillView))
 }

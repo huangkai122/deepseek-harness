@@ -310,6 +310,20 @@ export function InputBar({
           keyboard.track(keyboard.snapshot.draft, start)
           return
         }
+        const textRef = deco.textRefs.find(ref => ref.trigger === '/' && (e.key === 'Backspace'
+          ? ref.end === selection.start
+          : ref.start === selection.start))
+        if (textRef !== undefined) {
+          e.preventDefault()
+          keyboard.setDraft(draft.slice(0, textRef.start) + draft.slice(textRef.end), {
+            start: textRef.start,
+            end: textRef.end,
+            insertedLength: 0,
+          })
+          restoreCaret(e.currentTarget, textRef.start)
+          keyboard.track(keyboard.snapshot.draft, textRef.start)
+          return
+        }
       }
     }
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -551,6 +565,7 @@ export function InputBar({
             className={clsx(css.chip, chip.invalid && css.chipInvalid)}
             data-decoration="chip"
             data-reference-appearance={chip.appearance}
+            data-skill-chip={chip.appearance === 'skill' ? 'true' : undefined}
             data-occurrence={chip.occurrenceId}
             data-invalid={chip.invalid || undefined}
             title={chip.label}
@@ -572,18 +587,20 @@ export function InputBar({
         // textarea's (advance untouched); the mark paints the chip look.
         const text = draft.slice(b.ref.start, b.ref.end)
         backdrop.push(
-          <mark key={`ref-${b.ref.start}`} className={css.textRef} data-decoration="text-ref">
-            {b.ref.appearance === 'folder'
-              ? (
-                <>
-                  <span className={css.textRefTrigger}>
-                    <span className={css.textRefTriggerGlyph}>{text[0]}</span>
-                    <ReferenceIcon kind="folder" size={16} className={css.textRefIcon} />
-                  </span>
-                  {text.slice(1)}
-                </>
-              )
-              : text}
+          <mark key={`ref-${b.ref.start}`} className={css.textRef} data-decoration="text-ref" data-reference-trigger={b.ref.trigger}>
+            {b.ref.trigger === '/'
+              ? <><span className={css.textRefTriggerGlyph}>{text[0]}</span>{text.slice(1)}</>
+              : b.ref.appearance === 'folder'
+                ? (
+                  <>
+                    <span className={css.textRefTrigger}>
+                      <span className={css.textRefTriggerGlyph}>{text[0]}</span>
+                      <ReferenceIcon kind="folder" size={16} className={css.textRefIcon} />
+                    </span>
+                    {text.slice(1)}
+                  </>
+                )
+                : text}
           </mark>,
         )
         cursor = b.ref.end

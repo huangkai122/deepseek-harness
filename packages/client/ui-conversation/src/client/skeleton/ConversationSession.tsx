@@ -168,6 +168,7 @@ export function ConversationSession({
       {active !== undefined && renderSlot('conversation.view', {
         inspect,
         onInspectDone: () => { actions.setInspect(null) },
+        onNavigateChat: () => { actions.setView('chat') },
       }, { only: active.id })}
     </div>
   )

@@ -129,15 +129,15 @@ describe('apply', () => {
           'row.failed': 'skill 加载失败',
           'row.stopped': 'skill 加载已中止',
           'row.instructions': '说明',
-          'menu.userOnly': '仅用户',
-        },
+            'menu.userOnly': '仅用户',
+           'view.skills': '技能',        },
         en: {
           'row.running': 'Loading skill',
           'row.failed': 'Skill load failed',
           'row.stopped': 'Skill load stopped',
           'row.instructions': 'Instructions',
-          'menu.userOnly': 'user-only',
-        },
+            'menu.userOnly': 'user-only',
+           'view.skills': 'Skills',        },
       },
     }])
   })
