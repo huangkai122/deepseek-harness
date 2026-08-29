@@ -7,7 +7,7 @@ import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { CertificateFace, CertificateState } from './controller.ts'
 import { formatLocalDateTime, remainingDays, statusOf, type CertificateRecord, type SslCertificateSettings } from '../types.ts'
 
-type Props = PropsRuntime<'user-center.menu.entry'> & InjectFace<CertificateFace>
+type Props = PropsRuntime<'sidebar.new-session.action'> & InjectFace<CertificateFace>
 const statusLabel = { normal: '正常', warning: '即将到期', danger: '紧急' } as const
 const statusColor = { normal: 'var(--dsw-alias-label-success, #16803c)', warning: 'var(--dsw-alias-label-warning, #9a6700)', danger: 'var(--dsw-alias-label-danger, #c5221f)' } as const
 const emptyDraft = (): CertificateRecord => ({ domain: '', expiresAt: '', remark: '' })

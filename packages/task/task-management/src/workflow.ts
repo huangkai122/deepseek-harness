@@ -30,8 +30,17 @@ export class TaskAgentWorkflow {
       const withSession: TaskRecord = { ...next, agentSessionId: agent.sessionId }
       const saved = await this.repository.saveTask(withSession, task.revision, 'clarification Agent started', task)
       if (saved === undefined) throw new Error(`task-management task changed while opening clarification: ${String(task.id)}`)
-      const plan = await this.ensureInitialPlan(saved, agent.sessionId)
-      return { task: plan.task, agent }
+      const response = await agent.agent.whenIdle().then(() => agent.agent.session.events.findLast(item => item.type === 'assistant/message'))
+      if (response?.type === 'assistant/message') {
+        const content = response.data.message.content.filter((block): block is { type: 'text'; text: string } => block.type === 'text').map(block => block.text).join('\n').trim()
+        const marker = content.match(/DSH_TASK_RESULT:\s*(PLAN|QUESTIONS)\s*$/mu)?.[1]
+        if (content !== '' && marker !== 'QUESTIONS') {
+          const planContent = content.replace(/\n?DSH_TASK_RESULT:\s*PLAN\s*$/mu, '').trim()
+          const planned = await this.publishPlan(saved, planContent, agent.sessionId)
+          return { task: planned.task, agent }
+        }
+      }
+      throw new Error('clarification Agent completed without an assistant response or plan')
     } catch (error) {
       await agent.dispose()
       throw error
@@ -44,12 +53,6 @@ export class TaskAgentWorkflow {
       throw new Error('task-management questions require a clarification task waiting for the user')
     }
     return this.repository.createQuestion(task.id, question, options, allowFreeText)
-  }
-
-  async ensureInitialPlan(task: TaskRecord, sessionId?: string): Promise<{ task: TaskRecord; document: TaskDocument }> {
-    const documents = await this.repository.listDocuments(task.id, 'development_plan')
-    if (documents.length > 0) return { task, document: documents.at(-1)! }
-    return this.publishPlan(task, initialPlan(task), sessionId)
   }
 
   async publishPlan(task: TaskRecord, content: string, sessionId?: string): Promise<{ task: TaskRecord; document: TaskDocument }> {
@@ -70,7 +73,7 @@ export class TaskAgentWorkflow {
     const requirements = await this.repository.listDocuments(task.id, 'requirement')
     const plans = await this.repository.listDocuments(task.id, 'development_plan')
     const requirement = await this.repository.createDocument(task.id, 'requirement', (requirements.at(-1)?.revision ?? 0) + 1, trimmed, sessionId)
-    const previousPlan = plans.at(-1)?.content ?? initialPlan(task)
+    const previousPlan = plans.at(-1)?.content ?? ''
     const plan = await this.repository.createDocument(task.id, 'development_plan', (plans.at(-1)?.revision ?? 0) + 1, `${previousPlan}\n\n## 用户补充\n${trimmed}`, sessionId)
     return { task, requirement, plan }
   }
@@ -108,8 +111,4 @@ export class TaskAgentWorkflow {
     if (saved === undefined) throw new Error(`task-management task changed while recording feedback: ${String(task.id)}`)
     return { task: saved, feedback }
   }
-}
-
-function initialPlan(task: TaskRecord): string {
-  return `# 开发计划\n\n## 目标\n${task.description}\n\n## 实施步骤\n1. 检查现有项目结构、入口和相关模块。\n2. 根据需求实现必要的界面、逻辑和数据变更。\n3. 保持现有功能兼容，并仅修改完成任务所需的文件。\n4. 运行工作区配置的验证命令并修复发现的问题。\n\n## 验收标准\n- 任务描述中的功能可以在项目中实际使用。\n- 相关验证命令通过。\n- 变更范围和提交内容仅包含本任务需要的文件。`
 }

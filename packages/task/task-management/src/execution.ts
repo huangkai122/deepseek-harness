@@ -28,7 +28,16 @@ export class TaskExecutionCoordinator {
   async run(task: TaskRecord, workspace: TaskWorkspace, signal: AbortSignal): Promise<void> {
     if (signal.aborted) return
     if (task.primaryStatus === 'pending') {
-      const round = await this.workflow.openClarification(task, workspace.canonicalPath, this.clarificationPrompt(task))
+      let current = task
+      if (current.developmentBranch === undefined) {
+        const branch = await this.git.createTaskBranch(workspace, task)
+        await this.repository.recordGitOperation({ taskId: task.id, kind: 'branch-create', status: 'succeeded', branch: branch.branch, commitSha: branch.baseCommit, changedFiles: [] })
+        const branched = { ...current, developmentBranch: branch.branch, revision: current.revision + 1, updatedAt: new Date().toISOString() }
+        const saved = await this.repository.saveTask(branched, current.revision, 'task branch created from dev before clarification', current)
+        if (saved === undefined) throw new Error(`task-management task changed while creating branch: ${String(task.id)}`)
+        current = saved
+      }
+      const round = await this.workflow.openClarification(current, workspace.canonicalPath, this.clarificationPrompt(current))
       this.handles.set(String(task.id), round.agent)
       return
     }
@@ -36,9 +45,7 @@ export class TaskExecutionCoordinator {
       await this.develop(task, workspace, signal)
       return
     }
-    if (task.primaryStatus === 'ready_for_test') {
-      await this.testAndRelease(task, workspace)
-    }
+    if (task.primaryStatus === 'ready_for_test') return
   }
 
   /** Wake a task's persisted Agent with a user answer or control message. */
@@ -49,13 +56,43 @@ export class TaskExecutionCoordinator {
   }
 
   async sendAndWait(taskId: string, text: string): Promise<string> {
-    const handle = this.handles.get(taskId)
-    if (handle === undefined) throw new Error(`task-management task Agent is not active: ${taskId}`)
+    let handle = this.handles.get(taskId)
+    if (handle === undefined) {
+      const task = await this.repository.getTask(taskId as TaskRecord['id'])
+      if (task === undefined) throw new Error(`task-management task not found: ${taskId}`)
+      const workspace = await this.repository.getWorkspace(task.workspaceId)
+      if (workspace === undefined) throw new Error(`task-management workspace not found: ${String(task.workspaceId)}`)
+      await this.recoverClarification(task, workspace)
+      handle = this.handles.get(taskId)
+    }
+    if (handle === undefined) throw new Error(`task-management task Agent could not be restored: ${taskId}`)
     const startSeq = handle.agent.session.events.at(-1)?.seq ?? -1
     handle.agent.followup(createUserMessage({ source: { kind: 'plugin', plugin: 'task-management' }, content: [{ type: 'text', text }] }))
-    await handle.agent.whenIdle()
+    let agentError: unknown
+    const disposeError = handle.agent.ctx.on('agent/error', (payload: { error: unknown }) => { agentError = payload.error })
+    try {
+      await new Promise<void>(resolve => { setTimeout(resolve, 0) })
+      await handle.agent.whenIdle()
+    } finally {
+      disposeError()
+    }
     const event = handle.agent.session.events.findLast(item => item.seq > startSeq && item.type === 'assistant/message')
-    if (event?.type !== 'assistant/message') throw new Error('task-management Agent completed without an assistant response')
+    if (event?.type !== 'assistant/message') {
+      const detail = agentError === undefined ? 'check the Agent session for its model or tool error' : String(agentError)
+      await handle.dispose()
+      this.handles.delete(taskId)
+      const task = await this.repository.getTask(taskId as TaskRecord['id'])
+      if (task === undefined) throw new Error(`task-management task not found: ${taskId}`)
+      const workspace = await this.repository.getWorkspace(task.workspaceId)
+      if (workspace === undefined) throw new Error(`task-management workspace not found: ${String(task.workspaceId)}`)
+      const fresh = await this.agents.start({ taskId: task.id, cwd: workspace.canonicalPath, prompt: text })
+      this.handles.set(taskId, fresh)
+      await new Promise<void>(resolve => { setTimeout(resolve, 0) })
+      await fresh.agent.whenIdle()
+      const freshEvent = fresh.agent.session.events.findLast(item => item.type === 'assistant/message')
+      if (freshEvent?.type !== 'assistant/message') throw new Error(`task-management fresh Agent completed without an assistant response: ${detail}`)
+      return freshEvent.data.message.content.filter((block): block is { type: 'text'; text: string } => block.type === 'text').map(block => block.text).join('\n').trim()
+    }
     return event.data.message.content.filter((block): block is { type: 'text'; text: string } => block.type === 'text').map(block => block.text).join('\n').trim()
   }
 
@@ -99,12 +136,22 @@ export class TaskExecutionCoordinator {
     }
     await handle.agent.whenIdle()
     if (signal.aborted) return
+    const operations = await this.repository.listGitOperations(task.id)
+    const baseCommit = operations.find(operation => operation.kind === 'branch-create')?.commitSha
+    const latestCommit = await this.git.latestCommit(workspace)
+    if (baseCommit === undefined || latestCommit === baseCommit) {
+      throw new Error('development Agent completed without creating a task commit; the task remains unfinished')
+    }
     const completed = applyTaskTransition(current, { kind: 'development-completed' }, new Date().toISOString())
     const saved = await this.repository.saveTask(completed, current.revision, 'development Agent turn completed', current)
     if (saved === undefined) throw new Error(`task-management task changed after development: ${String(task.id)}`)
   }
 
+  async completeTask(task: TaskRecord, workspace: TaskWorkspace): Promise<void> {
+    await this.testAndRelease(task, workspace)
+  }
   private async testAndRelease(task: TaskRecord, workspace: TaskWorkspace): Promise<void> {
+    await this.git.ensureTaskBranch(workspace, task)
     const results = await this.git.validate(workspace)
     for (const result of results) {
       await this.repository.recordValidation({ taskId: task.id, kind: 'task-test', command: result.command, cwd: result.cwd, exitCode: result.exitCode, output: result.output, passed: result.passed })
@@ -125,7 +172,7 @@ export class TaskExecutionCoordinator {
   }
 
   private clarificationPrompt(task: TaskRecord): string {
-    return `Analyze task ${String(task.id)} in the selected workspace. Ask focused clarification questions before proposing an implementation plan. Do not modify files or commit changes until the user confirms an exact plan document revision. Existing uncommitted changes must never be included in task commits.\n\nTitle: ${task.title}\nDescription: ${task.description}`
+    return `Analyze task ${String(task.id)} in the selected workspace. Ask focused clarification questions before proposing an implementation plan. Do not modify files or commit changes until the user confirms an exact plan document revision. Existing uncommitted changes must never be included in task commits.\n\nTitle: ${task.title}\nDescription: ${task.description}\n\nEnd your response with exactly one result marker: DSH_TASK_RESULT: QUESTIONS when user answers are required, or DSH_TASK_RESULT: PLAN when you have inspected the real workspace and can provide a concrete implementation plan. A PLAN must include real file paths, implementation steps, validation commands, and acceptance criteria. Never use a template or claim workspace facts you did not inspect.`
   }
 
   private developmentPrompt(task: TaskRecord): string {

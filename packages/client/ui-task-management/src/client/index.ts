@@ -1,6 +1,6 @@
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-task-management/remote'
-import type { ConfirmPlanRequest, CreateTaskRequest, CreateWorkspaceRequest, ReviseTaskRequest, ReviseTaskResult, TaskBoardSnapshot, TaskDetails, TransitionTaskRequest } from '@deepseek-ai/dsh-task-management/remote-types'
+import type { CompleteTaskRequest, ConfirmPlanRequest, CreateTaskRequest, CreateWorkspaceRequest, ReviseTaskRequest, ReviseTaskResult, TaskBoardSnapshot, TaskDetails, TestFeedbackRequest, TestFeedbackResult, TransitionTaskRequest } from '@deepseek-ai/dsh-task-management/remote-types'
 import type { TaskRecord } from '@deepseek-ai/dsh-task-management/types'
 import { TaskBoardMenuEntry } from './TaskBoardMenuEntry.tsx'
 
@@ -14,7 +14,8 @@ export function apply(ctx: ClientContext): void {
   const taskManagement = ctx.remote.taskManagement as typeof ctx.remote.taskManagement & {
     createWorkspace: (input: CreateWorkspaceRequest) => Promise<{ ok: true; value: import('@deepseek-ai/dsh-task-management/types').TaskWorkspace } | { ok: false; error: { message: string } }>
     details: (id: string) => Promise<{ ok: true; value: TaskDetails } | { ok: false; error: { message: string } }>
-    revisePlan: (input: ReviseTaskRequest) => Promise<{ ok: true; value: ReviseTaskResult } | { ok: false; error: { message: string } }>
+    completeTask: (input: CompleteTaskRequest) => Promise<{ ok: true; value: TaskRecord } | { ok: false; error: { message: string } }>
+    testFeedback: (input: TestFeedbackRequest) => Promise<{ ok: true; value: TestFeedbackResult } | { ok: false; error: { message: string } }>
   }
   const load = async (): Promise<TaskBoardSnapshot> => {
     const result = await ctx.remote.taskManagement.board()
@@ -41,7 +42,17 @@ export function apply(ctx: ClientContext): void {
     if (!result.ok) throw new Error(result.error.message)
     return result.value
   }
+  const completeTask = async (input: CompleteTaskRequest): Promise<TaskRecord> => {
+    const result = await taskManagement.completeTask(input)
+    if (!result.ok) throw new Error(result.error.message)
+    return result.value
+  }
   const pickDirectory = (): Promise<string | null> => ctx.workspaces.pickDirectory()
+  const testFeedback = async (input: TestFeedbackRequest): Promise<TestFeedbackResult> => {
+    const result = await taskManagement.testFeedback(input)
+    if (!result.ok) throw new Error(result.error.message)
+    return result.value
+  }
   const loadDetails = async (taskId: string): Promise<TaskDetails> => {
     const remote = ctx.remote.taskManagement as typeof ctx.remote.taskManagement & {
       details?: (id: string) => Promise<{ ok: true; value: TaskDetails } | { ok: false; error: { message: string } }>
@@ -64,6 +75,6 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('sidebar.new-session.action', () => ctx.slots.register({
     name: 'sidebar.new-session.action',
     id: 'task-management-board',
-    inject: () => ({ load, createTask, createWorkspace, pickDirectory, retryTask, closeTask, loadDetails, confirmPlan, reviseTask }),
+    inject: () => ({ load, createTask, createWorkspace, pickDirectory, retryTask, closeTask, completeTask, testFeedback, loadDetails, confirmPlan, reviseTask }),
   }, TaskBoardMenuEntry))
 }

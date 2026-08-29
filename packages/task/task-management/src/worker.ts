@@ -38,8 +38,8 @@ export class TaskWorker {
   /** Start periodic scans; repeated starts are rejected. */
   start(): void {
     if (this.timer !== undefined) throw new Error('task-management worker is already started')
-    this.timer = setInterval(() => { void this.runOnce() }, this.options.pollIntervalMs)
-    void this.runOnce()
+    this.timer = setInterval(() => { void this.runOnce().catch(error => { console.error('task-management worker scan failed', error) }) }, this.options.pollIntervalMs)
+    void this.runOnce().catch(error => { console.error('task-management worker scan failed', error) })
   }
 
   /** Stop future scans and abort active task work after its cancellation settles. */

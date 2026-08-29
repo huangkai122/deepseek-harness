@@ -11,6 +11,8 @@
     { "path": "../../../vendor/schemastery" },
     { "path": "../../db/capability/db-connector" },
     { "path": "../../core/agent" },
+    { "path": "../../core/agent-default-model" },
+    { "path": "../../preset/agent-presets" },
     { "path": "../../core/session" },
     { "path": "../../llm/llm" },
     { "path": "../../typert/protocol" },

@@ -23,7 +23,10 @@ export interface TransitionTaskRequest {
   readonly revision: number
   readonly transition: TaskTransition
 }
-/** Result returned after a plan revision is published. */
+export interface CompleteTaskRequest {
+  readonly taskId: string
+  readonly revision: number
+}
 export interface PublishPlanResult {
   readonly task: TaskRecord
   readonly document: import('./types.ts').TaskDocument
@@ -75,6 +78,7 @@ export interface ReviseTaskResult {
 export interface TaskDetails {
   readonly documents: readonly import('./types.ts').TaskDocument[]
   readonly openQuestions: readonly import('./types.ts').TaskQuestion[]
+  readonly development?: import('./types.ts').TaskDevelopmentDetails
 }
 export interface TaskBoardSnapshot {
   readonly workspaces: readonly TaskWorkspace[]

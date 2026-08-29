@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { ConfirmPlanRequest, CreateTaskRequest, CreateWorkspaceRequest, ReviseTaskRequest, ReviseTaskResult, TaskBoardSnapshot, TaskDetails, TransitionTaskRequest } from '@deepseek-ai/dsh-task-management/remote-types'
-import type { TaskRecord, TaskWorkspace } from '@deepseek-ai/dsh-task-management/types'
+import type { CompleteTaskRequest, ConfirmPlanRequest, CreateTaskRequest, CreateWorkspaceRequest, ReviseTaskRequest, ReviseTaskResult, TaskBoardSnapshot, TaskDetails, TestFeedbackRequest, TestFeedbackResult, TransitionTaskRequest } from '@deepseek-ai/dsh-task-management/remote-types'
+import type { TaskDevelopmentDetails, TaskRecord, TaskWorkspace } from '@deepseek-ai/dsh-task-management/types'
 import css from './TaskBoard.module.css'
 
 const COLUMNS = [
@@ -15,6 +15,8 @@ export interface TaskBoardInjected {
   createTask: (input: CreateTaskRequest) => Promise<TaskRecord>
   retryTask: (input: TransitionTaskRequest) => Promise<TaskRecord>
   closeTask: (input: TransitionTaskRequest) => Promise<TaskRecord>
+  completeTask: (input: CompleteTaskRequest) => Promise<TaskRecord>
+  testFeedback: (input: TestFeedbackRequest) => Promise<TestFeedbackResult>
   loadDetails: (taskId: string) => Promise<TaskDetails>
   confirmPlan: (input: ConfirmPlanRequest) => Promise<TaskRecord>
   reviseTask: (input: ReviseTaskRequest) => Promise<ReviseTaskResult>
@@ -40,6 +42,22 @@ function formatDocumentContent(content: string): string {
   return content.replace(/^#{1,6}\s*/gmu, '').replace(/^\s*[-*]\s+/gmu, '• ')
 }
 
+function DevelopmentSummary({ details, branch, description, documents }: { details: TaskDevelopmentDetails; branch?: string | undefined; description: string; documents: TaskDetails['documents'] }): JSX.Element {
+  const files = details.gitOperations.flatMap(operation => operation.changedFiles)
+  const problems = [...details.statusHistory.filter(item => item.toExecutionStatus === 'failed').map(item => item.reason || '执行失败'), ...details.gitOperations.filter(operation => operation.status === 'failed').map(operation => operation.output || `${operation.kind} 失败`)]
+  return <section className={css.developmentSummary} aria-label="开发交付摘要">
+    <h4>开发交付摘要</h4>
+    <p><strong>开发分支：</strong>{branch || '未记录'}</p>
+    <p><strong>完成度：</strong>{details.validations.length === 0 || details.validations.every(item => item.passed) ? '开发已完成，等待测试验收' : '验证未全部通过'}</p>
+    <h5>本次需求</h5><pre>{formatDocumentContent(description)}</pre>
+    <h5>验收依据</h5>{documents.filter(document => document.kind === 'development_plan').at(-1) === undefined ? <p>暂无开发计划文档。</p> : <pre>{formatDocumentContent(documents.filter(document => document.kind === 'development_plan').at(-1)?.content ?? '')}</pre>}
+    <h5>人工验收</h5><p>请严格按照上面的需求和开发计划进行真实操作，逐项确认功能结果。未通过时，请在任务详情中提交具体复现步骤、实际结果和预期结果。</p>
+    <h5>受影响的文件</h5>{files.length === 0 ? <p>暂无 Git 文件变更记录。</p> : <ul>{[...new Set(files)].map(file => <li key={file}>{file}</li>)}</ul>}
+    <h5>测试结果</h5>{details.validations.length === 0 ? <p>暂无测试结果记录。</p> : <ul>{details.validations.map(item => <li key={item.id}>{item.command}：{item.passed ? '通过' : '失败'}</li>)}</ul>}
+    <h5>问题与解决</h5>{problems.length === 0 ? <p>暂无失败记录。</p> : <ul>{problems.map((problem, index) => <li key={`${problem}-${index}`}>{problem}</li>)}</ul>}
+    <h5>下一步</h5><p>请按上面的验收步骤实际操作。测试通过后点击“任务完成并上线”；发现问题时，在下方提交测试反馈。</p>
+  </section>
+}
 async function encodeFile(file: File): Promise<{ name: string; mediaType: string; data: string }> {
   const bytes = new Uint8Array(await file.arrayBuffer())
   let binary = ''
@@ -48,7 +66,7 @@ async function encodeFile(file: File): Promise<{ name: string; mediaType: string
 }
 
 /** Directory-first task board modal. */
-export function TaskBoard({ load, createWorkspace, pickDirectory, createTask, retryTask, closeTask, loadDetails, confirmPlan, reviseTask, open, close }: TaskBoardProps) {
+export function TaskBoard({ load, createWorkspace, pickDirectory, createTask, retryTask, closeTask, completeTask, testFeedback, loadDetails, confirmPlan, reviseTask, open, close }: TaskBoardProps) {
   const [snapshot, setSnapshot] = useState<TaskBoardSnapshot | null>(null)
   const [workspaceId, setWorkspaceId] = useState<string | null>(null)
   const [selectedTask, setSelectedTask] = useState<TaskRecord | null>(null)
@@ -59,9 +77,12 @@ export function TaskBoard({ load, createWorkspace, pickDirectory, createTask, re
   const [retryingTaskId, setRetryingTaskId] = useState<string | null>(null)
   const [taskDetails, setTaskDetails] = useState<TaskDetails | null>(null)
   const [confirmingPlan, setConfirmingPlan] = useState(false)
+  const [completingTask, setCompletingTask] = useState(false)
   const [detailsLoading, setDetailsLoading] = useState(false)
   const [revisionText, setRevisionText] = useState('')
+  const [feedbackText, setFeedbackText] = useState('')
   const [revising, setRevising] = useState(false)
+  const [revisionStatus, setRevisionStatus] = useState<string | null>(null)
   const [conversation, setConversation] = useState<readonly { role: 'user' | 'assistant'; content: string }[]>([])
   const [creatingWorkspace, setCreatingWorkspace] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -96,13 +117,13 @@ export function TaskBoard({ load, createWorkspace, pickDirectory, createTask, re
     finally { setCreatingWorkspace(false) }
   }
 
-  const submitRevision = async (): Promise<void> => {
-    if (selectedTask === null || revisionText.trim() === '') return
-    setRevising(true)
+  const submitRevision = async (requestedContent: string = revisionText): Promise<void> => {
+    if (selectedTask === null || requestedContent.trim() === '') return
+    setRevising(true); setRevisionStatus('已提交，正在等待 AI 返回真实分析结果…'); setError(null)
     try {
-      const result = await reviseTask({ taskId: String(selectedTask.id), revision: selectedTask.revision, content: revisionText.trim() })
-      setSelectedTask(result.task); setRevisionText(''); setConversation(current => [...current, { role: 'user', content: revisionText.trim() }, { role: 'assistant', content: result.assistantMessage }]); await refresh()
-    } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)) }
+      const result = await reviseTask({ taskId: String(selectedTask.id), revision: selectedTask.revision, content: requestedContent.trim() })
+      setSelectedTask(result.task); setRevisionText(''); setConversation(current => [...current, { role: 'user', content: requestedContent.trim() }, { role: 'assistant', content: result.assistantMessage }]); setRevisionStatus('AI 已返回结果，需求和开发计划已更新。'); await refresh()
+    } catch (reason) { const message = reason instanceof Error ? reason.message : String(reason); setRevisionStatus(`AI 修改失败：${message}`); setError(message) }
     finally { setRevising(false) }
   }
   const confirmSelectedPlan = async (): Promise<void> => {
@@ -121,6 +142,18 @@ export function TaskBoard({ load, createWorkspace, pickDirectory, createTask, re
       setSelectedTask(current => current?.id === updated.id ? updated : current)
       await refresh()
     } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)) }
+  }
+  const completeSelectedTask = async (): Promise<void> => {
+    if (selectedTask === null) return
+    setCompletingTask(true)
+    try { const updated = await completeTask({ taskId: String(selectedTask.id), revision: selectedTask.revision }); setSelectedTask(updated); await refresh() }
+    catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)) }
+    finally { setCompletingTask(false) }
+  }
+  const submitFeedback = async (): Promise<void> => {
+    if (selectedTask === null || feedbackText.trim() === '') return
+    try { const result = await testFeedback({ taskId: String(selectedTask.id), revision: selectedTask.revision, content: feedbackText.trim() }); setSelectedTask(result.task); setFeedbackText(''); await refresh() }
+    catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)) }
   }
   const retry = async (task: TaskRecord): Promise<void> => {
     setRetryingTaskId(String(task.id))
@@ -183,7 +216,7 @@ export function TaskBoard({ load, createWorkspace, pickDirectory, createTask, re
                 {tasks.filter(task => task.primaryStatus === status).map(task => <div className={css.task} key={task.id}><button className={css.taskOpen} type="button" onClick={() => { setSelectedTask(task) }}><strong>{task.title}</strong><span>{task.executionStatus}</span>{task.executionStatus === 'failed' && task.failureReason !== undefined && <span className={css.failureReason}>{task.failureReason}</span>}</button>{task.executionStatus === 'failed' && <button className={css.retryButton} type="button" onClick={() => { void retry(task) }} disabled={retryingTaskId === String(task.id)}>{retryingTaskId === String(task.id) ? '重试中…' : '失败重试'}</button>}</div>)}
               </section>)}
             </div>
-            {selectedTask !== null && <aside className={css.details} aria-label="任务详情"><div className={css.detailsHeader}><h3>{selectedTask.title}</h3><button type="button" onClick={() => { setSelectedTask(null) }} aria-label="关闭任务详情">关闭</button>{(['pending', 'clarifying', 'developing', 'ready_for_test'] as readonly string[]).includes(selectedTask.primaryStatus) && <button type="button" className={css.closeButton} onClick={() => { void closeSelectedTask(selectedTask) }}>关闭任务</button>}</div><p>{selectedTask.description || '暂无描述'}</p><span>状态：{selectedTask.executionStatus}</span>{selectedTask.executionStatus === 'failed' && <p className={css.failureDetail}><strong>失败原因：</strong>{selectedTask.failureReason || '暂无诊断信息'}</p>}{selectedTask.executionStatus === 'waiting_for_user' && <section className={css.userReview} aria-label="待确认内容"><h4>待确认内容</h4>{taskDetails === null ? <p>正在加载相关文档…</p> : <>{detailsLoading && <p>正在加载补充文档…</p>}{taskDetails.documents.length === 0 && taskDetails.openQuestions.length === 0 && <p>暂无已生成的需求文档或待回答问题。</p>}{taskDetails.documents.map(document => <article className={css.document} key={document.id}><h5>{document.kind === 'development_plan' ? '开发计划' : '需求文档'} · 修订 {document.revision}</h5><pre>{formatDocumentContent(document.content)}</pre></article>)}{taskDetails.openQuestions.map(question => <article className={css.question} key={question.id}><h5>待回答问题</h5><p>{question.question}</p></article>)}{taskDetails.documents.some(document => document.kind === 'development_plan') && <>{conversation.length > 0 && <div className={css.conversation} aria-label="AI 会话">{conversation.map((message, index) => <p className={message.role === 'user' ? css.userMessage : css.assistantMessage} key={`${message.role}-${index}`}><strong>{message.role === 'user' ? '你' : 'AI'}</strong>{message.content}</p>)}</div>}<label className={css.revisionField}>补充需求或建议<textarea value={revisionText} onChange={event => { setRevisionText(event.target.value) }} placeholder="告诉 AI 需要补充或修改的内容" rows={4} /></label><button type="button" className={css.secondaryButton} onClick={() => { void submitRevision() }} disabled={revising || revisionText.trim() === ''}>{revising ? 'AI 处理中…' : '提交给 AI 修改'}</button><button type="button" className={css.primaryButton} onClick={() => { void confirmSelectedPlan() }} disabled={confirmingPlan}>{confirmingPlan ? '确认中…' : '确认计划并继续'}</button></>}</>}</section>}</aside>}
+            {selectedTask !== null && <div className={css.detailsModal} role="dialog" aria-modal="true" aria-label="任务详情"><aside className={css.details} aria-label="任务详情"><div className={css.detailsHeader}><h3>{selectedTask.title}</h3><button type="button" onClick={() => { setSelectedTask(null) }} aria-label="关闭任务详情">关闭</button>{(['pending', 'clarifying', 'developing', 'ready_for_test'] as readonly string[]).includes(selectedTask.primaryStatus) && <button type="button" className={css.closeButton} onClick={() => { void closeSelectedTask(selectedTask) }}>关闭任务</button>}{selectedTask.primaryStatus === 'clarifying' && <button type="button" className={css.primaryButton} onClick={() => { void (taskDetails?.documents.some(document => document.kind === 'development_plan') === true ? confirmSelectedPlan() : submitRevision('请重新检查当前 workspace 的真实项目文件。如果没有需要澄清的问题，请直接生成具体开发计划，并在结尾标记 DSH_TASK_RESULT: PLAN。不要使用通用模板。')) }} disabled={confirmingPlan || revising || taskDetails === null || detailsLoading}>{confirmingPlan ? '确认中…' : revising ? '分析中…' : taskDetails === null || detailsLoading ? '开发计划加载中…' : taskDetails.documents.some(document => document.kind === 'development_plan') ? '确认最新计划并开始开发' : '重新分析并生成计划'}</button>}{selectedTask.primaryStatus === 'ready_for_test' && <button type="button" className={css.primaryButton} onClick={() => { void completeSelectedTask() }} disabled={completingTask}>{completingTask ? '合并中…' : '任务完成并上线'}</button>}</div><span>状态：{selectedTask.executionStatus}</span>{revisionStatus !== null && <p className={css.revisionStatus} role="status">{revisionStatus}</p>}{(revising || conversation.length > 0) && <details className={css.analysisLog}><summary>{revising ? '展开查看分析过程' : '展开查看分析记录'}</summary><div className={css.conversation}>{revising && <p className={css.assistantMessage}><strong>AI</strong>正在检查工作区并分析任务，请稍候…</p>}{conversation.map((message, index) => <p key={`${message.role}-${index}`} className={message.role === 'user' ? css.userMessage : css.assistantMessage}><strong>{message.role === 'user' ? '你' : 'AI'}</strong>{message.content}</p>)}</div></details>}{taskDetails?.development !== undefined && <><DevelopmentSummary details={taskDetails.development} branch={selectedTask.developmentBranch} description={selectedTask.description} documents={taskDetails.documents} />{selectedTask.primaryStatus === 'ready_for_test' && <section className={css.feedbackBox} aria-label="测试反馈"><h4>测试未通过？</h4><textarea value={feedbackText} onChange={event => { setFeedbackText(event.target.value) }} placeholder="请填写复现步骤、实际结果和预期结果" rows={5} /><button type="button" className={css.secondaryButton} disabled={feedbackText.trim() === ''} onClick={() => { void submitFeedback() }}>提交测试反馈并返回开发</button></section>}</>}{selectedTask.executionStatus === 'failed' && <p className={css.failureDetail}><strong>失败原因：</strong>{selectedTask.failureReason || '暂无诊断信息'}</p>}{selectedTask.executionStatus === 'waiting_for_user' && <section className={css.userReview} aria-label="待确认内容"><h4>待确认内容</h4><p className={css.waitingNotice}>任务已完成当前轮次分析，正在等待你的确认或补充。确认最新开发计划后，任务才会进入开发中。</p>{taskDetails === null ? <p>正在加载相关文档…</p> : <>{detailsLoading && <p>正在加载补充文档…</p>}{taskDetails.documents.length === 0 && taskDetails.openQuestions.length === 0 && <p>暂无已生成的需求文档或待回答问题。</p>}{taskDetails.documents.map(document => <article className={css.document} key={document.id}><h5>{document.kind === 'development_plan' ? '开发计划' : '需求文档'} · 修订 {document.revision}</h5><pre>{formatDocumentContent(document.content)}</pre></article>)}{taskDetails.openQuestions.map(question => <article className={css.question} key={question.id}><h5>待回答问题</h5><p>{question.question}</p></article>)}{taskDetails.documents.some(document => document.kind === 'development_plan') && <>{conversation.length > 0 && <div className={css.conversation} aria-label="AI 会话">{conversation.map((message, index) => <p className={message.role === 'user' ? css.userMessage : css.assistantMessage} key={`${message.role}-${index}`}><strong>{message.role === 'user' ? '你' : 'AI'}</strong>{message.content}</p>)}</div>}<label className={css.revisionField}>补充需求或建议<textarea value={revisionText} onChange={event => { setRevisionText(event.target.value) }} placeholder="告诉 AI 需要补充或修改的内容" rows={4} /></label><button type="button" className={css.secondaryButton} onClick={() => { void submitRevision() }} disabled={revising || revisionText.trim() === ''}>{revising ? 'AI 处理中…' : '提交给 AI 修改'}</button><button type="button" className={css.primaryButton} onClick={() => { void confirmSelectedPlan() }} disabled={confirmingPlan}>{confirmingPlan ? '确认中…' : '确认计划并继续'}</button></>}</>}</section>}</aside></div>}
           </>
         )}
         {creatingTask && <div className={css.modalScrim} role="dialog" aria-modal="true" aria-label="新建任务"><div className={css.taskComposer}><header className={css.detailsHeader}><h3>新建任务</h3><button type="button" onClick={() => { setCreatingTask(false) }} aria-label="关闭新建任务">关闭</button></header><label className={css.field}>任务描述<textarea autoFocus value={description} onChange={event => { setDescription(event.target.value) }} placeholder="描述你希望完成的任务" rows={8} /></label><label className={css.attachments}>截图或附件<input type="file" multiple accept="image/*,.pdf,.txt,.md,.json,.zip" onChange={event => { setAttachments(Array.from(event.target.files ?? [])) }} /></label>{attachments.length > 0 && <p className={css.attachmentList}>{attachments.map(file => file.name).join('、')}</p>}<div className={css.formActions}><button type="button" className={css.secondaryButton} onClick={() => { setCreatingTask(false) }}>取消</button><button type="button" className={css.primaryButton} disabled={description.trim() === '' || taskSubmitting} onClick={() => { void submitTask() }}>创建任务</button></div></div></div>}

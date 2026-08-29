@@ -6,8 +6,9 @@ import {
   type DbConnectionConfig,
   type DbConnectionSettings,
 } from '@deepseek-ai/dsh-db-connector'
-import type { SettingsProvider } from '@deepseek-ai/dsh-settings'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
+import type { AgentDefaultModelConfig } from '@deepseek-ai/dsh-agent-default-model'
+import type { AgentPresets } from '@deepseek-ai/dsh-agent-presets'
+import { settingsNamespace, type SettingsProvider } from '@deepseek-ai/dsh-settings'
 import { initialSchemaSql } from './schema.ts'
 import { TaskRepository } from './repository.ts'
 import { GitWorkspaceInspector } from './git.ts'
@@ -18,7 +19,7 @@ import { TaskAgentWorkflow } from './workflow.ts'
 import { TaskExecutionCoordinator } from './execution.ts'
 import type { TaskWorkspace, TaskRecord, TaskTransition, TaskQuestionAnswer } from './types.ts'
 import { TaskId as makeTaskId, WorkspaceId as makeWorkspaceId } from './types.ts'
-import type { CreateTaskRequest, CreateWorkspaceRequest, ReviseTaskRequest, ReviseTaskResult, TaskBoardSnapshot, TaskDetails, TransitionTaskRequest, AnswerQuestionRequest, ConfirmPlanRequest, PublishPlanRequest, PublishPlanResult, TestFeedbackRequest, TestFeedbackResult } from './remote-types.ts'
+import type { CreateTaskRequest, CreateWorkspaceRequest, CompleteTaskRequest, ReviseTaskRequest, ReviseTaskResult, TaskBoardSnapshot, TaskDetails, TransitionTaskRequest, AnswerQuestionRequest, ConfirmPlanRequest, PublishPlanRequest, PublishPlanResult, TestFeedbackRequest, TestFeedbackResult } from './remote-types.ts'
 import { applyTaskTransition } from './state.ts'
 
 export type * from './types.ts'
@@ -123,7 +124,11 @@ export class TaskManagementService extends TypertRemoteService {
     this.repository = new TaskRepository(ctx.db, this.database, this.resolved.schema)
     this.git = new GitWorkspaceInspector(ctx.shell)
     this.gitTasks = new GitTaskController(ctx.shell)
-    this.agents = new TaskAgentController(ctx.agents)
+    const defaultModel = ctx.get('agentDefaultModel') as AgentDefaultModelConfig | undefined
+    if (defaultModel === undefined) throw new Error('task-management requires the agent-default-model service')
+    const presets = ctx.get('agentPresets') as AgentPresets | undefined
+    if (presets === undefined) throw new Error('task-management requires the agent-presets service')
+    this.agents = new TaskAgentController(ctx.agents, defaultModel, presets)
     this.workflow = new TaskAgentWorkflow(this.repository, this.agents)
     this.execution = new TaskExecutionCoordinator(this.repository, this.workflow, this.agents, this.gitTasks)
     this.worker = this.createWorker(this.execution.run.bind(this.execution))
@@ -133,7 +138,6 @@ export class TaskManagementService extends TypertRemoteService {
   protected async [Service.init](): Promise<void> {
     await this.migrate()
     for (const task of await this.repository.listTasksWaitingForPlan()) {
-      await this.workflow.ensureInitialPlan(task, task.agentSessionId)
       const workspace = await this.repository.getWorkspace(task.workspaceId)
       if (workspace !== undefined) await this.execution.recoverClarification(task, workspace)
     }
@@ -180,7 +184,11 @@ export class TaskManagementService extends TypertRemoteService {
   @Remote('details')
   async remoteTaskDetails(taskId: string): Promise<TaskDetails> {
     const id = makeTaskId(taskId)
-    return { documents: await this.repository.listDocuments(id), openQuestions: await this.repository.listOpenQuestions(id) }
+    const documents = await this.repository.listDocuments(id)
+    const openQuestions = await this.repository.listOpenQuestions(id)
+    const task = await this.repository.getTask(id)
+    const development = task?.primaryStatus === 'ready_for_test' ? { gitOperations: await this.repository.listGitOperations(id), validations: await this.repository.listValidations(id), statusHistory: await this.repository.listStatusHistory(id) } : undefined
+    return { documents, openQuestions, ...(development === undefined ? {} : { development }) }
   }
 
   @Remote('revisePlan')
@@ -208,7 +216,24 @@ export class TaskManagementService extends TypertRemoteService {
     return task
   }
 
-  /** Apply one revision-fenced task transition from a Host/UI action. */
+  @Remote('completeTask')
+  async remoteCompleteTask(input: CompleteTaskRequest): Promise<TaskRecord> {
+    const task = await this.repository.getTask(makeTaskId(input.taskId))
+    if (task === undefined || task.revision !== input.revision) throw new Error(`task-management task revision is stale: ${input.taskId}`)
+    if (task.primaryStatus !== 'ready_for_test' || task.executionStatus !== 'idle') throw new Error('task-management task completion requires an idle development-complete task')
+    const workspace = await this.repository.getWorkspace(task.workspaceId)
+    if (workspace === undefined) throw new Error(`task-management workspace not found: ${String(task.workspaceId)}`)
+    try {
+      await this.execution.completeTask(task, workspace)
+    } catch (error) {
+      await this.repository.recordGitOperation({ taskId: task.id, kind: 'merge-push', status: 'failed', ...(task.developmentBranch === undefined ? {} : { branch: task.developmentBranch }), changedFiles: [], output: error instanceof Error ? error.message : String(error) })
+      throw error
+    }
+    const updated = await this.repository.getTask(task.id)
+    if (updated === undefined) throw new Error(`task-management task disappeared after completion: ${input.taskId}`)
+    return updated
+  }
+
   @Remote('transition')
   async remoteTransition(input: TransitionTaskRequest): Promise<TaskRecord> {
     const current = await this.repository.getTask(makeTaskId(input.taskId))

@@ -1,23 +1,21 @@
 /**
- * Game Center footer action trigger.
- * Renders a game icon button in the sidebar foot; clicking opens the game
+ * New Session action trigger.
+ * Renders a game icon button below New Session; clicking opens the game
  * center in a wide overlay dialog portaled to the document body.
  */
 
 import { useState, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { IconPlayOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { GameCenter } from './GameCenter'
 
-/** Footer action owner props: the sidebar column state. */
-interface GameCenterTriggerProps {
-  wide?: boolean
-}
+type GameCenterTriggerProps = PropsRuntime<'sidebar.new-session.action'>
 
 /**
- * Footer action button with a game icon, and the game center overlay dialog.
+ * New Session action button with a game icon, and the game center overlay dialog.
  */
-export function GameCenterTrigger({ wide = true }: GameCenterTriggerProps) {
+export function GameCenterTrigger({ wide }: GameCenterTriggerProps) {
   const [open, setOpen] = useState(false)
 
   const handleClose = useCallback(() => { setOpen(false) }, [])
@@ -89,7 +87,7 @@ export function GameCenterTrigger({ wide = true }: GameCenterTriggerProps) {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  // Footer trigger button (wide sidebar row, the 42px foot-row box).
+  // New Session action row (expanded sidebar).
   trigger: {
     flex: 'none',
     display: 'flex',
@@ -110,7 +108,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '14px',
     lineHeight: '22px',
   },
-  // Footer trigger button (collapsed rail circle, the 36px foot box).
+  // New Session action row (collapsed sidebar).
   triggerRail: {
     flex: 'none',
     display: 'flex',

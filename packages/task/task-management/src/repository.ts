@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { DbConnectionConfig, DbConnectorService, DbQueryResult } from '@deepseek-ai/dsh-db-connector'
-import type { TaskDocument, TaskGitOperation, TaskId, TaskLease, TaskQuestion, TaskQuestionAnswer, TaskRecord, TaskTestFeedback, TaskValidationResult, TaskWorkspace, WorkspaceId } from './types.ts'
+import type { TaskDocument, TaskDevelopmentDetails, TaskGitOperation, TaskId, TaskLease, TaskQuestion, TaskQuestionAnswer, TaskRecord, TaskTestFeedback, TaskValidationResult, TaskWorkspace, WorkspaceId } from './types.ts'
 import { snapshotJsonValue } from '@deepseek-ai/dsh-session'
 import type { JsonValue } from '@deepseek-ai/dsh-session'
 import { LeaseToken, TaskId as makeTaskId, WorkspaceId as makeWorkspaceId } from './types.ts'
@@ -249,6 +249,23 @@ export class TaskRepository {
     }
   }
 
+  async listGitOperations(taskId: TaskId): Promise<TaskGitOperation[]> {
+    const result = await this.db.query(this.database, `SELECT id::text AS id, task_id, kind, status, branch, commit_sha, dev_commit_sha, changed_files_json, output, created_at FROM ${this.table}.task_git_operation WHERE task_id = $1 ORDER BY created_at, id`, [taskId])
+    if (!result.success) throw new Error(result.error ?? 'task-management Git operation query failed')
+    return (result.rows ?? []).map(row => ({ id: requiredString(row, 'id'), taskId: makeTaskId(requiredString(row, 'task_id')), kind: requiredString(row, 'kind'), status: requiredString(row, 'status'), ...(row.branch == null ? {} : { branch: requiredString(row, 'branch') }), ...(row.commit_sha == null ? {} : { commitSha: requiredString(row, 'commit_sha') }), ...(row.dev_commit_sha == null ? {} : { devCommitSha: requiredString(row, 'dev_commit_sha') }), changedFiles: jsonArray(row, 'changed_files_json'), ...(row.output == null ? {} : { output: requiredString(row, 'output') }), createdAt: requiredTimestamp(row, 'created_at') }))
+  }
+
+  async listValidations(taskId: TaskId): Promise<TaskValidationResult[]> {
+    const result = await this.db.query(this.database, `SELECT id::text AS id, task_id, kind, command, cwd, commit_sha, exit_code, output, passed, created_at FROM ${this.table}.task_validation_result WHERE task_id = $1 ORDER BY created_at, id`, [taskId])
+    if (!result.success) throw new Error(result.error ?? 'task-management validation query failed')
+    return (result.rows ?? []).map(row => ({ id: requiredString(row, 'id'), taskId: makeTaskId(requiredString(row, 'task_id')), kind: requiredString(row, 'kind'), command: requiredString(row, 'command'), cwd: requiredString(row, 'cwd'), ...(row.commit_sha == null ? {} : { commitSha: requiredString(row, 'commit_sha') }), exitCode: row.exit_code == null ? null : Number(row.exit_code), output: requiredString(row, 'output'), passed: row.passed === true, createdAt: requiredTimestamp(row, 'created_at') }))
+  }
+
+  async listStatusHistory(taskId: TaskId): Promise<TaskDevelopmentDetails['statusHistory']> {
+    const result = await this.db.query(this.database, `SELECT from_primary_status, from_execution_status, to_primary_status, to_execution_status, reason, created_at FROM ${this.table}.task_status_history WHERE task_id = $1 ORDER BY created_at, id`, [taskId])
+    if (!result.success) throw new Error(result.error ?? 'task-management status history query failed')
+    return (result.rows ?? []).map(row => ({ ...(row.from_primary_status == null ? {} : { fromPrimaryStatus: requiredString(row, 'from_primary_status') }), ...(row.from_execution_status == null ? {} : { fromExecutionStatus: requiredString(row, 'from_execution_status') }), toPrimaryStatus: requiredString(row, 'to_primary_status'), toExecutionStatus: requiredString(row, 'to_execution_status'), ...(row.reason == null ? {} : { reason: requiredString(row, 'reason') }), createdAt: requiredTimestamp(row, 'created_at') }))
+  }
   async listDocuments(taskId: TaskId, kind?: TaskDocument['kind']): Promise<TaskDocument[]> {
     const result = await this.db.query(this.database, `
       SELECT * FROM ${this.table}.task_document

@@ -65,12 +65,22 @@ export class GitTaskController {
     } catch {
       throw new GitWorkspaceError(`工作区缺少任务要求的 Git 分支 ${baseBranch}。请先在该目录执行 git switch -c ${baseBranch}（或从远端创建该分支），然后点击“失败重试”。`)
     }
-    await this.run(`git switch ${baseBranch}`, workspace.canonicalPath)
+    if (state.branch !== baseBranch) await this.run(`git switch ${baseBranch}`, workspace.canonicalPath)
     await this.run(`git switch --create ${branch}`, workspace.canonicalPath)
     return { branch, baseBranch, baseCommit }
   }
 
-  /** Commit only the explicit task files using Git's NUL-delimited path input. */
+  async ensureTaskBranch(workspace: TaskWorkspace, task: Pick<TaskRecord, 'developmentBranch'>): Promise<void> {
+    const branch = task.developmentBranch === undefined ? undefined : validRef(task.developmentBranch, 'task branch')
+    if (branch === undefined) throw new GitWorkspaceError('task has no development branch')
+    const state = await this.inspector.inspect(workspace.canonicalPath)
+    if (state.dirtyFiles.length > 0) throw new GitWorkspaceError('cannot switch to a task branch from a dirty workspace')
+    if (state.branch !== branch) await this.run(`git switch ${branch}`, workspace.canonicalPath)
+  }
+
+  async latestCommit(workspace: TaskWorkspace): Promise<string> {
+    return this.run('git rev-parse HEAD', workspace.canonicalPath)
+  }
   async commitTaskFiles(cwd: string, files: readonly string[], message: string): Promise<string> {
     if (files.length === 0) throw new GitWorkspaceError('task commit requires at least one file')
     if (message.trim() === '' || message.includes('\0')) throw new GitWorkspaceError('task commit message must be non-empty')
@@ -125,11 +135,7 @@ export class GitTaskController {
     } catch {
       throw new GitWorkspaceError(`工作区缺少任务要求的 Git 分支 ${targetBranch}。请先在该目录执行 git switch -c ${targetBranch}（或从远端创建该分支），然后点击“失败重试”。`)
     }
-    await this.runWithStdin(
-      `git merge --no-ff ${branch} -F -`,
-      workspace.canonicalPath,
-      `merge ${branch} into ${targetBranch}`,
-    )
+    await this.run(`git merge --no-ff ${branch} -m "merge ${branch} into ${targetBranch}"`, workspace.canonicalPath)
     const mergedValidation = await this.validate(workspace)
     if (mergedValidation.some(result => !result.passed)) {
       throw new GitWorkspaceError('merged dev validation failed')
@@ -137,11 +143,6 @@ export class GitTaskController {
     await this.run(`git push ${remoteName} HEAD:${remoteBranch}`, workspace.canonicalPath)
     const mergedCommit = await this.run('git rev-parse HEAD', workspace.canonicalPath)
     return { branch, targetBranch, mergedCommit, pushed: true, mergedValidation }
-  }
-
-  private async runWithStdin(command: string, cwd: string, stdin: string): Promise<string> {
-    const result = await this.shell.run(this.shell.resolve({ command, workdir: cwd, stdin, stdoutMaxBytes: 128_000 }))
-    return commandResult(result, command)
   }
 
   private async run(command: string, cwd: string): Promise<string> {

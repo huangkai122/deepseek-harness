@@ -164,7 +164,12 @@ export function isAutomaticRetryFailure(kind: TaskFailureKind): boolean {
     || kind === 'temporary_database_error'
 }
 
-/** The immutable task document version used to authorize development. */
+export interface TaskDevelopmentDetails {
+  readonly gitOperations: readonly TaskGitOperation[]
+  readonly validations: readonly TaskValidationResult[]
+  readonly statusHistory: readonly { readonly fromPrimaryStatus?: string; readonly fromExecutionStatus?: string; readonly toPrimaryStatus: string; readonly toExecutionStatus: string; readonly reason?: string; readonly createdAt: string }[]
+}
+
 export interface TaskDocument {
   readonly id: string
   readonly taskId: TaskId
