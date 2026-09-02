@@ -24,19 +24,20 @@ The optional bundle composes the service, provider, tool, and image-generation S
 
 ## Configuration and credentials
 
-The provider has an explicit configuration section with `provider`, `baseURL`, `api`, `model`, `apiKeyRef`, and validated defaults for size and quality. `api` is `images` or `responses`; the provider fails at the earliest resolvable point when required configuration is missing or invalid. Credentials resolve through the existing credentials seam and never enter prompts, session events, or error messages.
+The provider has an explicit configuration section with `provider`, `baseURL`, `api`, `model`, `apiKeyRef`, and validated defaults for size and quality. The entire `image-generation` section is optional. When it is absent, the Consumer resolves the current active LLM route and inherits its provider, endpoint, credential reference, model, and declared output modalities. Inherited generation is allowed only when that route explicitly declares `image` in `outputModalities` and its adapter supports the configured Images or Responses protocol. An explicit image-generation section overrides the inherited route for deployments that use a separate image model. `api` is `images` or `responses`; the provider fails at the earliest resolvable point when an explicit configuration is missing or invalid. Credentials resolve through the existing credentials seam and never enter prompts, session events, or error messages.
 
 The public provider schema exposes only supported OpenAI-compatible fields: prompt, size, quality, background, and output format. Every deployment-varying limit is validated configuration rather than a hardcoded plugin tuning constant. The implementation must not persist or expose third-party URLs as image references.
 
 ## Data flow
 
 1. `generate_image` validates the prompt and optional generation fields.
-2. The Consumer verifies that the resolved model route explicitly declares `image` in `outputModalities`.
-3. The provider selects `/images/generations` or `/responses` from the configured API mode.
-4. The provider accepts supported base64 results or downloads only an HTTPS result URL, then decodes the image.
-5. The decoded bytes go through the attachment service's media-type, byte, dimension, and pixel limits.
-6. The Consumer returns a structured text result and a durable `ImageBlock` referencing the stored attachment.
-7. The tool result and image content follow the existing session-log path and remain available to `read_image` after reload.
+2. The Consumer resolves the explicit image-generation profile, or inherits the current active LLM route when that profile is absent.
+3. The Consumer verifies that the resolved model route explicitly declares `image` in `outputModalities` and that its adapter supports the selected API mode.
+4. The provider selects `/images/generations` or `/responses` from the configured API mode.
+5. The provider accepts supported base64 results or downloads only an HTTPS result URL, then decodes the image.
+6. The decoded bytes go through the attachment service's media-type, byte, dimension, and pixel limits.
+7. The Consumer returns a structured text result and a durable `ImageBlock` referencing the stored attachment.
+8. The tool result and image content follow the existing session-log path and remain available to `read_image` after reload.
 
 No successful image event is published before attachment persistence completes. Failed, cancelled, malformed, oversized, or rejected results do not leave a successful image result in the session.
 
