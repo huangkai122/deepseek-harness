@@ -1,0 +1,212 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>钱塘江鬼王潮安全指南复盘 — 复盘报告</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  background: #f3f4f6; color: #1f2937; line-height: 1.7; padding: 20px 12px 48px;
+}
+.wrap { max-width: 960px; margin: 0 auto; }
+.head {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+  color: #fff; border-radius: 16px; padding: 28px 26px; margin-bottom: 18px;
+}
+.head h1 { font-size: 22px; margin-bottom: 10px; }
+.meta-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.chip {
+  display: inline-block; font-size: 12px; padding: 3px 10px; border-radius: 999px;
+  background: rgba(255,255,255,.14); color: #e2e8f0; border: 1px solid rgba(255,255,255,.18);
+}
+.verdict-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.verdict-badge {
+  font-size: 20px; font-weight: 700; padding: 6px 18px; border-radius: 10px; color: #fff;
+}
+.head .summary { margin-top: 14px; font-size: 14px; color: #cbd5e1; }
+.section { background: #fff; border-radius: 14px; padding: 22px 22px; margin-bottom: 18px;
+  box-shadow: 0 1px 3px rgba(15,23,42,.07); }
+.section > h2 { font-size: 17px; margin-bottom: 14px; padding-left: 10px; border-left: 4px solid #2563eb; }
+.funnel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+.funnel-card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px 16px; }
+.funnel-card .stage-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.funnel-card .stage { font-weight: 700; font-size: 14px; color: #475569; }
+.funnel-card .value { font-size: 26px; font-weight: 800; margin: 2px 0 4px; }
+.funnel-card .metric { font-size: 12px; color: #94a3b8; margin-bottom: 6px; }
+.funnel-card .bench { font-size: 12px; color: #64748b; margin-bottom: 8px; }
+.funnel-card .cmt { font-size: 13px; color: #475569; border-top: 1px dashed #e5e7eb; padding-top: 8px; }
+.tag {
+  display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px;
+}
+.breakpoint {
+  border-left: 5px solid #dc2626; background: #fef2f2; border-radius: 0 12px 12px 0;
+  padding: 14px 16px; margin-bottom: 18px;
+}
+.breakpoint .bp-title { font-weight: 700; color: #b91c1c; margin-bottom: 4px; font-size: 15px; }
+.breakpoint .bp-body { font-size: 14px; color: #7f1d1d; }
+.attr-item { border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+.attr-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.el-chip { font-size: 13px; font-weight: 700; color: #fff; background: #334155; padding: 2px 12px; border-radius: 999px; }
+.attr-row { font-size: 13.5px; margin-bottom: 6px; }
+.attr-row b { color: #0f172a; }
+.attr-row .fix { color: #1d4ed8; }
+.two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+.factor-box { border-radius: 12px; padding: 16px 18px; }
+.factor-box.keep { background: #ecfdf5; border: 1px solid #a7f3d0; }
+.factor-box.kill { background: #fef2f2; border: 1px solid #fecaca; }
+.factor-box h3 { font-size: 15px; margin-bottom: 10px; }
+.factor-item { font-size: 13.5px; margin-bottom: 10px; background: rgba(255,255,255,.75); border-radius: 8px; padding: 8px 12px; }
+.factor-item .ev { color: #64748b; font-size: 12.5px; }
+.action-item { border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; border: 1px solid #e5e7eb; }
+.action-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.action-item .do { font-size: 14px; margin-bottom: 8px; }
+.action-item .example {
+  font-size: 13.5px; background: #f8fafc; border-left: 3px solid #cbd5e1;
+  padding: 8px 12px; border-radius: 0 8px 8px 0; color: #334155;
+}
+.voice-card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; }
+.voice-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.voice-quote { font-size: 14px; color: #0f172a; margin-bottom: 4px; }
+.voice-insight { font-size: 12.5px; color: #64748b; }
+.insight-box { background: #eff6ff; border-radius: 10px; padding: 12px 16px; font-size: 14px; color: #1e3a5f; margin-top: 6px; }
+.angles li { font-size: 14px; margin: 0 0 10px 20px; }
+.note { font-size: 13px; color: #64748b; margin-top: 8px; }
+.foot { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 26px; }
+@media (max-width: 640px) {
+  body { padding: 10px 6px 36px; }
+  .section { padding: 16px 14px; }
+  .funnel-card .value { font-size: 22px; }
+}
+</style></head><body><div class="wrap">
+
+<div class="head">
+  <h1>📉 钱塘江鬼王潮安全指南复盘 — 复盘报告</h1>
+  <div class="meta-chips"><span class="chip">平台：公众号</span><span class="chip">品类：旅行安全</span><span class="chip">发布时间：未提供（待确认）</span><span class="chip">数据来源：无数据（内容侧静态复盘）</span><span class="chip">对标基准：无账号基线，未提供后台数据</span></div>
+  <div class="verdict-row"><span class="verdict-badge" style="background:#2563eb;">整体判定：小跑</span></div>
+  <div class="summary">📌 仅从原文判断，选题与内容价值成立：热点、路线、安全边界和返程安排都覆盖到了，也有明确清单与转发 CTA。由于没有曝光、打开率、完读率和分享数据，不能确认实际传播表现；暂定为内容侧小跑，所有结论待数据验证。</div><div class="summary">无数据复盘：选题踩中鬼王潮热度，安全提醒具备转发价值；但标题、头图和首屏信息缺失，前段铺垫较长，可能削弱打开与完读。</div>
+</div>
+
+<div class="section">
+  <h2>① 数据诊断</h2>
+  <div class="funnel-grid">
+<div class="funnel-card" style="border-top:3px solid #d97706;">
+  <div class="stage-row"><span class="stage">1. 全漏斗</span><span class="tag" style="color:#d97706;background:#fffbeb;">偏弱</span></div>
+  <div class="value" style="color:#d97706;">数据缺失</div>
+  <div class="metric">后台数据</div>
+  <div class="bench">对标：无</div>
+  <div class="cmt">未提供后台数据，本次为内容侧静态复盘，全部结论低置信度，建议补数据后再盘一次。</div>
+</div></div>
+</div>
+<div class="breakpoint">
+  <div class="bp-title">⚠ 漏斗断点：打开/首屏承接（待验证）</div>
+  <div class="bp-body">没有标题、头图和后台打开率数据，无法实锤漏斗断点。仅从正文看，开头先讲背景与提醒，核心五个细节在较后位置出现；若打开率或首屏流失偏弱，优先检查标题头图是否给出明确利益点，以及首屏是否尽快亮出清单。</div>
+</div>
+
+<div class="section">
+  <h2>② 归因拆解</h2>
+  
+<div class="attr-item">
+  <div class="attr-head"><span class="el-chip">选题</span><span class="tag" style="color:#d97706;background:#fffbeb;">置信中</span></div>
+  <div class="attr-row"><b>现象：</b>正文围绕热榜上的钱塘江“鬼王潮”，同时回应观潮路线、机位、人流、开放范围和返程安全等现实需求。</div>
+  <div class="attr-row"><b>判断：</b>热点与高风险出行场景结合，既有即时关注度，又有公共安全价值，具备被转发给同行人的理由。</div>
+  <div class="attr-row"><b>下一稿改法：</b><span class="fix">保留“热点事件 + 出行决策”组合，后续在热榜出现后尽快发布，并把当天官方开放信息或潮汐节点补进标题和首屏。</span></div>
+</div>
+<div class="attr-item">
+  <div class="attr-head"><span class="el-chip">标题</span><span class="tag" style="color:#64748b;background:#f1f5f9;">置信低</span></div>
+  <div class="attr-row"><b>现象：</b>用户未提供已发布标题，正文中也没有可直接作为标题的明确利益点。</div>
+  <div class="attr-row"><b>判断：</b>如果标题只写“直击鬼王潮”或“观潮注意事项”，可能被同质化内容淹没；“正规观潮点、提前60分钟、平安返程”等具体信息更能制造打开理由。</div>
+  <div class="attr-row"><b>下一稿改法：</b><span class="fix">采用热点词 + 明确收益 + 数字结构，例如“去看钱塘江‘鬼王潮’前，先确认这5件事：观潮点、时间和返程安排”。</span></div>
+</div>
+<div class="attr-item">
+  <div class="attr-head"><span class="el-chip">封面/头图</span><span class="tag" style="color:#64748b;background:#f1f5f9;">置信低</span></div>
+  <div class="attr-row"><b>现象：</b>用户未提供公众号头图或封面文案；正文只标注了三处待插入图片。</div>
+  <div class="attr-row"><b>判断：</b>若头图只有潮水氛围画面，没有“安全观潮五项核对”的信息提示，视觉吸引力可能无法转化为打开动机。</div>
+  <div class="attr-row"><b>下一稿改法：</b><span class="fix">头图用清晰潮水现场图，叠加短文案“鬼王潮安全观潮5项核对”，避免堆叠小字和危险近岸画面。</span></div>
+</div>
+<div class="attr-item">
+  <div class="attr-head"><span class="el-chip">开头</span><span class="tag" style="color:#d97706;background:#fffbeb;">置信中</span></div>
+  <div class="attr-row"><b>现象：</b>开头先解释网络近距离画面与现实行动标准的差异，随后才引出“五个细节”；核心清单没有出现在首屏。</div>
+  <div class="attr-row"><b>判断：</b>观点正确但利益点出现稍晚，读者在移动端可能尚未看到具体可执行内容就离开。</div>
+  <div class="attr-row"><b>下一稿改法：</b><span class="fix">首段压缩为热点 + 风险 + 清单承诺，第二屏直接放“提前60分钟、只去正规点、不越线、约集合点、留返程余量”五项速览。</span></div>
+</div>
+<div class="attr-item">
+  <div class="attr-head"><span class="el-chip">结构</span><span class="tag" style="color:#d97706;background:#fffbeb;">置信中</span></div>
+  <div class="attr-row"><b>现象：</b>正文按观潮点、潮汐余量、安全距离、亲子老人、返程准备递进，末尾还有五分钟核对表，信息覆盖完整。</div>
+  <div class="attr-row"><b>判断：</b>清单体和分段标题适合公众号移动阅读，但每个模块文字较长，关键动作分散在段落中，截图和快速回看成本偏高。</div>
+  <div class="attr-row"><b>下一稿改法：</b><span class="fix">每节开头先用“结论句 + 具体动作”两行总结，再保留解释；把官方信息、时间余量、禁行动作做成可截图的表格或加粗短句。</span></div>
+</div>
+<div class="attr-item">
+  <div class="attr-head"><span class="el-chip">CTA</span><span class="tag" style="color:#d97706;background:#fffbeb;">置信中</span></div>
+  <div class="attr-row"><b>现象：</b>结尾有“把这份清单转给同行人”和“出发前一起核对一次”，动作与安全场景高度匹配。</div>
+  <div class="attr-row"><b>判断：</b>CTA 给出了明确对象、动作和理由，天然适合群聊转发；但缺少评论互动或收藏提示，可能没有充分承接读者的个体经验。</div>
+  <div class="attr-row"><b>下一稿改法：</b><span class="fix">保留转发 CTA，并增加具体互动：“你准备去哪个正规观潮点？把官方公告或当天开放信息发在评论区，出发前互相核对。”</span></div>
+</div>
+<div class="attr-item">
+  <div class="attr-head"><span class="el-chip">配图</span><span class="tag" style="color:#64748b;background:#f1f5f9;">置信低</span></div>
+  <div class="attr-row"><b>现象：</b>文中预留“观潮点图”“安全距离图”“出发准备图”三个位置，且都服务于对应章节。</div>
+  <div class="attr-row"><b>判断：</b>图片规划与文字信息一致，有机会降低安全边界和准备清单的理解成本；但图片尚未实际提供，视觉完成度与可读性无法判断。</div>
+  <div class="attr-row"><b>下一稿改法：</b><span class="fix">三张图统一做成手机可读的信息图：每张只突出一个结论，标注“以当天官方公告和现场指引为准”，避免绘制可能被误认的固定开放范围。</span></div>
+</div>
+<div class="attr-item">
+  <div class="attr-head"><span class="el-chip">发布时间</span><span class="tag" style="color:#64748b;background:#f1f5f9;">置信低</span></div>
+  <div class="attr-row"><b>现象：</b>未提供发布时间、潮次和发布时的热榜阶段。</div>
+  <div class="attr-row"><b>判断：</b>热点安全指南存在时效窗口，太早可能缺当天公告，太晚则错过出发前决策；当前无法判断发布时间是否匹配。</div>
+  <div class="attr-row"><b>下一稿改法：</b><span class="fix">记录发布时间与对应潮次，优先在官方开放信息明确后、目标人群开始规划出行前发布，并在文首标注信息更新时间。</span></div>
+</div>
+</div>
+<div class="section"><h2>💬 评论区解码</h2><p class="note">本次未提供评论区原声，跳过解码。</p></div>
+
+<div class="section">
+  <h2>③ 因子沉淀</h2>
+  <div class="two-col">
+    <div class="factor-box keep"><h3>✅ Keep —— 被验证、下一稿继续用</h3><div class="factor-item"><b>✅ 热点场景与出行安全结合</b><div class="ev">证据：原文从“直击钱塘江‘鬼王潮’”切入，同时覆盖正规观潮点、潮汐余量、护栏边界和返程安排。</div></div><div class="factor-item"><b>✅ 可执行的五项出发核对表</b><div class="ev">证据：文末明确列出地点、时间、安全、同行、返程五项，并给出提前60分钟到达和预留30分钟机动时间等动作。</div></div><div class="factor-item"><b>✅ 安全边界表达具体且不鼓励危险模仿</b><div class="ev">证据：正文明确写出“不翻越护栏、不下堤、不进入未开放区域”，并提醒不要把网络近距离画面当行动标准。</div></div></div>
+    <div class="factor-box kill"><h3>🚫 Kill —— 被证伪、下一稿停用</h3><div class="factor-item"><b>🚫 核心价值在首屏之后才集中出现</b><div class="ev">证据：前两段先做背景和价值判断，五个细节与出发前核对表均在后文，可能增加移动端首屏流失风险。</div></div><div class="factor-item"><b>🚫 依赖待插入图片承担信息解释</b><div class="ev">证据：正文三处写有“此处插入”图片标记，但当前材料未包含图片，若发布时缺图或字太小，会削弱安全距离和准备清单的理解。</div></div><div class="factor-item"><b>🚫 部分提醒重复，挤压可扫描信息</b><div class="ev">证据：正规观潮点、服从现场指引、不要靠近江岸等原则在多个段落反复出现，适合压缩为开头速览与各节动作句。</div></div></div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>④ 下一稿行动清单</h2>
+  
+<div class="action-item">
+  <div class="action-head"><span class="tag" style="color:#dc2626;background:#fef2f2;">高优先</span><span class="el-chip">首屏结构</span></div>
+  <div class="do"><b>1.</b> 把五项行动先做成首屏速览，再展开解释，让读者在前两屏看到可直接执行的内容。</div>
+  <div class="example">✍ 去看“鬼王潮”前，先核对5件事：只去当日开放观潮点；至少提前60分钟到；不越护栏、不下堤；和同行人约远离江岸的集合点；返程至少留30分钟机动时间。</div>
+</div>
+<div class="action-item">
+  <div class="action-head"><span class="tag" style="color:#dc2626;background:#fef2f2;">高优先</span><span class="el-chip">标题</span></div>
+  <div class="do"><b>2.</b> 标题同时放入钱塘江鬼王潮、5件事和出发决策收益，避免只写泛泛的观潮提醒。</div>
+  <div class="example">✍ 去看钱塘江“鬼王潮”前，先确认这5件事：观潮点、时间和返程安排</div>
+</div>
+<div class="action-item">
+  <div class="action-head"><span class="tag" style="color:#dc2626;background:#fef2f2;">高优先</span><span class="el-chip">头图</span></div>
+  <div class="do"><b>3.</b> 用真实潮水画面承接热点，用一行大字给出安全指南的明确利益点。</div>
+  <div class="example">✍ 头图文案：鬼王潮安全观潮5项核对｜看完平安回家</div>
+</div>
+<div class="action-item">
+  <div class="action-head"><span class="tag" style="color:#d97706;background:#fffbeb;">中优先</span><span class="el-chip">正文节奏</span></div>
+  <div class="do"><b>4.</b> 每个小节先给一句结论和一个动作，再保留原因解释；删减重复的安全提醒。</div>
+  <div class="example">✍ 先确认“当天开放的正规观潮点”，再安排路线。导航显示能通，不代表当天可以下堤、靠岸或停留。</div>
+</div>
+<div class="action-item">
+  <div class="action-head"><span class="tag" style="color:#d97706;background:#fffbeb;">中优先</span><span class="el-chip">信息图</span></div>
+  <div class="do"><b>5.</b> 把三张待插图做成手机端可读的信息图，每张只承载一个结论，并标注信息时效限制。</div>
+  <div class="example">✍ 图中文字：安全距离不是固定机位：不越护栏、不下堤、不站湿滑消浪块；开放范围以当天官方公告和现场指引为准。</div>
+</div>
+<div class="action-item">
+  <div class="action-head"><span class="tag" style="color:#d97706;background:#fffbeb;">中优先</span><span class="el-chip">CTA与评论区</span></div>
+  <div class="do"><b>6.</b> 保留转发给同行人的动作，同时引导读者提交观潮点和当天公告信息，便于收集下一篇选题。</div>
+  <div class="example">✍ 转给同行人，出发前一起核对一次。你准备去哪个正规观潮点？以当天官方开放信息为准，也欢迎把最新公告更新时间写在评论区。</div>
+</div>
+<div class="action-item">
+  <div class="action-head"><span class="tag" style="color:#64748b;background:#f8fafc;">低优先</span><span class="el-chip">时效标注</span></div>
+  <div class="do"><b>7.</b> 在标题下或开头增加发布时间与信息更新时间，发布前重新核对潮汐、开放范围和交通管控。</div>
+  <div class="example">✍ 信息更新时间：待发布前确认；潮汐时间、开放区域和现场管控以出发当天官方最新通知为准。</div>
+</div>
+</div>
+
+<div class="section">
+  <h2>🚀 下一稿起手</h2>
+  <ul class="angles"><li>《钱塘江鬼王潮出发前一页核对表》：把五项安全动作压缩成可保存、可转发的单页信息。</li><li>《不同同行人怎么选观潮点》：分别回答亲子、老人和行动不便人群的通道、休息区与集合点安排。</li><li>《观潮当天信息怎么看》：演示如何核对官方潮汐、开放点、临时管控和返程交通，避免把导航路线当开放许可。</li></ul>
+  <div class="note">⏰ 补齐后台数据后，重点看打开率、完读率和分享率；若打开率弱先改标题头图，若完读率弱先压缩首屏和段落，若分享率好则延续“热点 + 安全清单”选题。</div>
+</div>
+<div class="foot">爆款内容复盘报告 v1.0.0 · 生成于 2026-08-31 12:10 · 与「爆款内容预检」配合使用：发前预检 · 发后复盘</div>
+</div></body></html>

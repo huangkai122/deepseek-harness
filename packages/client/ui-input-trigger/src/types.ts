@@ -92,7 +92,7 @@ export interface ReferenceInsert {
   /** Inline display label (fallback-cached on the occurrence). */
   readonly label: string
   /** Optional domain glyph shown beside the label. */
-  readonly appearance?: 'session' | 'file' | 'folder'
+  readonly appearance?: 'session' | 'file' | 'folder' | 'skill'
   /** Clipboard / persistence projection, e.g. `/name` (never the model form). */
   readonly clipboardText: string
 }
