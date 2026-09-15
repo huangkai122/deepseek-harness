@@ -513,6 +513,7 @@ function Loaded({ injected }: { injected: ModelsSectionFace }): ReactNode {
             deleteTarget,
           )}
         className={styles['deleteDialog'] as string}
+        zIndex={100001}
         footer={(
           <>
             <Button variant="outline" autoFocus disabled={deleting} onClick={closeDelete}>

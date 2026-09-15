@@ -4,7 +4,7 @@
 // WebUI dialog; it never creates or targets another browser/native window.
 
 import { useEffect } from 'react'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import { IconCloseOutline16 } from './icons/index.tsx'
@@ -23,12 +23,14 @@ import css from './Modal.module.css'
  * @param props.headless - render children directly in the card (no default
  * header/close/body chrome) for dialogs whose figma frame owns its own
  * header structure; mask, card, Escape, and aria-label remain.
+ * @param props.zIndex - optional stacking level for nested dialogs; the default
+ * preserves the primitive's normal layer.
  * @param props.closeLabel - close-button aria label; the owner passes
  * localized copy (this package is cordis-free, so copy arrives via props).
  * @returns null when closed; otherwise the overlay tree.
  */
 export function Modal({
-  open, onClose, title, closeLabel = 'Close', description, children, footer, className, contentClassName, headless = false,
+  open, onClose, title, closeLabel = 'Close', description, children, footer, className, contentClassName, headless = false, zIndex,
 }: {
   open: boolean
   onClose: () => void
@@ -40,6 +42,7 @@ export function Modal({
   className?: string
   contentClassName?: string
   headless?: boolean
+  zIndex?: CSSProperties['zIndex']
 }) {
   useEffect(() => {
     if (!open) return
@@ -53,7 +56,7 @@ export function Modal({
   if (!open) return null
 
   return createPortal((
-    <div className={css.root} role="presentation">
+    <div className={css.root} role="presentation" style={zIndex === undefined ? undefined : { zIndex }}>
       <div className={css.mask} aria-hidden="true" onClick={onClose} />
       <div
         className={clsx(css.dialog, className)}

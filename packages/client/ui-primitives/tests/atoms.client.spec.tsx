@@ -406,6 +406,12 @@ describe('Modal', () => {
     fireEvent.click(mask)
     expect(onClose).toHaveBeenCalledTimes(2)
   })
+
+  it('applies a caller-selected stacking level to the portal layer', () => {
+    render(<Modal open onClose={() => {}} title="Nested dialog" zIndex={100001} />)
+    const root = screen.getByRole('dialog', { name: 'Nested dialog' }).parentElement
+    expect(root?.style.zIndex).toBe('100001')
+  })
 })
 
 describe('ConnectionBanner', () => {

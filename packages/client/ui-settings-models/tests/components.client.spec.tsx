@@ -1106,6 +1106,7 @@ describe('ModelsSection', () => {
     const { replace, mutate, unset } = await mountSection()
     fireEvent.click(screen.getByRole('button', { name: openaiCopy(en.removeProvider) }))
     const dialog = screen.getByRole('dialog', { name: openaiCopy(en.deleteTitle) })
+    expect(dialog.parentElement?.style.zIndex).toBe('100001')
     expect(dialog.textContent).toContain(openaiCopy(en.deleteDescriptionWithCredential))
     expect(document.activeElement).toBe(within(dialog).getByRole('button', { name: en.cancel }))
     expect(unset).not.toHaveBeenCalled()
