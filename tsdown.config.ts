@@ -15,10 +15,35 @@ function isBuildFaceClient(value: unknown): boolean {
  */
 export default defineConfig(({ env }) => {
   const client = isBuildFaceClient(env?.DSH_BUILD_FACE)
+  // These packages are excluded from the matching TypeScript face aggregate and
+  // are retained only for installation compatibility.
+  const workspaceExcludes = [
+    '**/node_modules/**',
+    '**/dist/**',
+    '**/test?(s)/**',
+    '**/t?(e)mp/**',
+    ...(client
+      ? [
+          'packages/client/runtime/**',
+          'packages/client/ui-db-settings/**',
+          'packages/client/ui-ssl-certificates/**',
+          'packages/client/ui-task-management/**',
+          'packages/client/ui-user-center/**',
+          'packages/extensions/ui-game-center/**',
+        ]
+      : [
+          'packages/client/ui-ssl-certificates/**',
+          'packages/host/apiproxy/**',
+          'packages/task/task-management/**',
+        ]),
+  ]
   return {
-    workspace: client
-      ? ['vendor/*', 'packages/*/*', 'apps/cli']
-      : ['vendor/*', 'packages/*/*', 'apps/cli', 'apps/desktop', 'apps/desktop-host'],
+    workspace: {
+      include: client
+        ? ['vendor/*', 'packages/*/*', 'apps/cli']
+        : ['vendor/*', 'packages/*/*', 'apps/cli', 'apps/desktop', 'apps/desktop-host'],
+      exclude: workspaceExcludes,
+    },
     // The repository root is a workspace orchestrator, not a runtime package;
     // tsconfig.host.json intentionally emits no root lib/types entries.
     entry: '',
