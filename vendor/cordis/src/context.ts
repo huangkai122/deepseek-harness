@@ -14,9 +14,9 @@ import { Fiber } from './fiber.ts'
  * be read from `ctx`.
  */
 export interface Context {
-  /** Isolation map: service name â†?scope label. Lookups for a name resolve within its label. */
+  /** Isolation map: service name â†’scope label. Lookups for a name resolve within its label. */
   [symbols.isolate]: Dict<symbol>
-  /** Intercept map: service name â†?config merged into that service's per-plugin config. */
+  /** Intercept map: service name â†’config merged into that service's per-plugin config. */
   [symbols.intercept]: Dict
   /** The root context of the application (every child context shares it). @experimental */
   root: this
@@ -55,7 +55,7 @@ export class Context {
    * Works across realms and across multiple copies of cordis, because the
    * brand is keyed by a global symbol rather than by `instanceof`.
    *
-   * @param value â€?the value to test.
+   * @param value â€”the value to test.
    * @returns `true` if `value` is a Cordis context, narrowing its type.
    */
   static is(value: any): value is Context {
@@ -93,7 +93,7 @@ export class Context {
    * The child prototypally inherits every property of this context; own
    * properties of `meta` shadow the inherited ones. The parent is not mutated.
    *
-   * @param meta â€?own properties (including symbol keys) to define on the child.
+   * @param meta â€”own properties (including symbol keys) to define on the child.
    * @returns a child context inheriting from this one.
    */
   extend(meta = {}): this {
@@ -114,8 +114,8 @@ export class Context {
    * implementation can be provided without affecting the parent scope.
    * Passing the same `label` to two `isolate()` calls joins their scopes.
    *
-   * @param name â€?the service name to isolate.
-   * @param label â€?scope label to join; defaults to a fresh unique symbol.
+   * @param name â€”the service name to isolate.
+   * @param label â€”scope label to join; defaults to a fresh unique symbol.
    * @returns a child context whose `name` service resolves in the new scope.
    */
   isolate(name: string, label?: symbol) {
@@ -132,8 +132,8 @@ export class Context {
    * service's resolved config (ancestor entries first; see
    * `Service[symbols.resolveConfig]`). The parent context is not affected.
    *
-   * @param name â€?the service name whose config to intercept.
-   * @param config â€?the intercept config to merge for that service.
+   * @param name â€”the service name whose config to intercept.
+   * @param config â€”the intercept config to merge for that service.
    * @returns a child context carrying the additional intercept entry.
    */
   intercept<K extends InjectKey>(name: K, config: Context[K] extends { [symbols.config]: infer T } ? T : never): this

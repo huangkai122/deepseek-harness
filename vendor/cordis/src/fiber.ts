@@ -22,7 +22,7 @@ export class ValidationError extends TypeError {
   /**
    * Build the aggregated message from schema issues.
    *
-   * @param issues â€?the standard-schema issues, one message line each.
+   * @param issues â€” the standard-schema issues, one message line each.
    */
   constructor(issues: readonly StandardSchemaV1.Issue[]) {
     super(`invalid config:\n` + issues.map(issue => {
@@ -42,8 +42,8 @@ Object.defineProperty(ValidationError.prototype, kValidationError, {
 /**
  * Validate and normalize config for a plugin runtime before it starts.
  *
- * @param runtime â€?the plugin runtime whose `Config` schema to apply.
- * @param config â€?the raw user config.
+ * @param runtime â€” the plugin runtime whose `Config` schema to apply.
+ * @param config â€” the raw user config.
  * @returns the validated config, or `config` unchanged if the runtime has no schema.
  * @throws {ValidationError} when validation reports issues.
  */
@@ -77,7 +77,7 @@ export type Disposable<T = any> = () => T
  * Effect body result accepted by `ctx.effect()` and plugin startup.
  *
  * Either a single disposer, a promise of one, or a (possibly async) iterable
- * yielding several â€?generator effects register each yielded disposer as it
+ * yielding several â€” generator effects register each yielded disposer as it
  * is produced.
  */
 export type Effect<T = any> =
@@ -139,9 +139,9 @@ function emitPluginDisposed(context: Context, fiber: Fiber) {
 /**
  * Lifecycle state for one plugin fiber.
  *
- * `PENDING` â€?waiting for required services; `LOADING` â€?the plugin callback
- * is running; `ACTIVE` â€?loaded and providing; `FAILED` â€?the callback or its
- * config threw; `UNLOADING` â€?disposers are running; `DISPOSED` â€?the fiber
+ * `PENDING` â€” waiting for required services; `LOADING` â€” the plugin callback
+ * is running; `ACTIVE` â€” loaded and providing; `FAILED` â€” the callback or its
+ * config threw; `UNLOADING` â€” disposers are running; `DISPOSED` â€” the fiber
  * was removed and cannot restart.
  */
 export const enum FiberState {
@@ -156,8 +156,8 @@ export const enum FiberState {
 /** Framework error with a stable machine-readable code. */
 export class CordisError extends Error {
   /**
-   * @param code â€?the stable error code; also the default message.
-   * @param message â€?optional human-readable override.
+   * @param code â€” the stable error code; also the default message.
+   * @param message â€” optional human-readable override.
    */
   constructor(public code: CordisError.Code, message?: string) {
     super(message ?? CordisError.Code[code])
@@ -213,11 +213,11 @@ export class Fiber {
    * Create a fiber. Plugin authors normally obtain fibers from `ctx.plugin()`
    * rather than constructing them directly.
    *
-   * @param parent â€?the context the plugin was loaded from.
-   * @param config â€?raw config, validated against the runtime's schema.
-   * @param inject â€?resolved dependency map (service name â†?intercept config).
-   * @param runtime â€?the shared plugin runtime, or `null` for the root fiber.
-   * @param getOuterStack â€?captures the caller stack for effect diagnostics.
+   * @param parent â€” the context the plugin was loaded from.
+   * @param config â€” raw config, validated against the runtime's schema.
+   * @param inject â€” resolved dependency map (service name â†’ intercept config).
+   * @param runtime â€” the shared plugin runtime, or `null` for the root fiber.
+   * @param getOuterStack â€” captures the caller stack for effect diagnostics.
    */
   constructor(
     public parent: Context,
@@ -284,7 +284,7 @@ export class Fiber {
               return FiberState.UNLOADING
             })
           }
-          // `this.inertia` itself should never reject â€?both `_reload` and
+          // `this.inertia` itself should never reject â€” both `_reload` and
           // `_unload` swallow their own work errors via `ctx.logger.error`.
           // If it *does* reject, the only remaining cause is the logger
           // itself failing, which we can't recover from in this exact spot
@@ -408,8 +408,8 @@ export class Fiber {
    * is a no-op. Throws `CordisError('INACTIVE_EFFECT')` if the fiber is
    * already disposed, and `TypeError` if `execute` returns an invalid shape.
    *
-   * @param execute â€?the effect body; see {@link Effect} for accepted shapes.
-   * @param label â€?effect label shown in `getEffects()` diagnostics.
+   * @param execute â€” the effect body; see {@link Effect} for accepted shapes.
+   * @param label â€” effect label shown in `getEffects()` diagnostics.
    * @returns a disposer that tears the effect down and settles once done.
    */
   effect(execute: () => SyncEffect, label?: string): Disposable<Promise<void>>
@@ -540,7 +540,7 @@ export class Fiber {
       Promise.resolve(task).then(resolveSetup, rejectSetup)
     }
 
-    // prevent unhandled rejection â€?both from `task` itself and from the
+    // prevent unhandled rejection â€” both from `task` itself and from the
     // disposer chain if it fails to settle cleanly.
     task?.catch(() => {
       if (!runner.epoch) return dispose()
@@ -728,10 +728,10 @@ export class Fiber {
    * Runs the `internal/update` waterfall first, so update hooks (and HMR)
    * can veto or replace the restart.
    *
-   * @param config â€?the new raw config; validated before anything restarts.
-   * @param noSave â€?hint for persistence hooks not to write the change back.
-   * @returns the update waterfall result; the default restart returns a promise.
-   * @throws when validation, an update listener, or the restarted plugin fails.
+   * @param config â€” the new raw config; validated before anything restarts.
+   * @param noSave â€” hint for persistence hooks not to write the change back.
+   * @returns nothing; the restart runs behind the `internal/update` waterfall.
+   * @throws {ValidationError} when the new config fails validation.
    */
   update(config: any, noSave = false) {
     this.assertActive()
@@ -745,7 +745,7 @@ export class Fiber {
       return
     }
     config = this._resolveConfig(config)
-    return this.context.waterfall(this, 'internal/update', config, noSave, () => {
+    this.context.waterfall(this, 'internal/update', config, noSave, () => {
       this.config = config
       this._error = undefined
       return this.restart()

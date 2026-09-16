@@ -165,7 +165,7 @@ function createShadowMethod(ctx: Context, value: any, outer: any, shadow: {}) {
 function createTraceable(ctx: Context, value: any, tracker: Tracker) {
   // noShadow services are identity-aware (e.g. logger uses the origin fiber to
   // derive its name): keep the shadow ctx so they can read [symbols.shadow]
-  // and resolve the origin. Non-noShadow services strip â€?their side effects
+  // and resolve the origin. Non-noShadow services strip â€”their side effects
   // bind to caller, not origin.
   if (ctx[symbols.shadow] && !tracker.noShadow) {
     ctx = Object.getPrototypeOf(ctx)

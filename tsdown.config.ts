@@ -16,7 +16,9 @@ function isBuildFaceClient(value: unknown): boolean {
 export default defineConfig(({ env }) => {
   const client = isBuildFaceClient(env?.DSH_BUILD_FACE)
   return {
-    workspace: ['vendor/*', 'packages/*/*', 'packages/db/*/*', 'apps/cli'],
+    workspace: client
+      ? ['vendor/*', 'packages/*/*', 'apps/cli']
+      : ['vendor/*', 'packages/*/*', 'apps/cli', 'apps/desktop', 'apps/desktop-host'],
     // The repository root is a workspace orchestrator, not a runtime package;
     // tsconfig.host.json intentionally emits no root lib/types entries.
     entry: '',

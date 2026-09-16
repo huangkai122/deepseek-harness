@@ -226,7 +226,7 @@ export class LoggerService {
   /**
    * Register an exporter and dispose it with the current fiber.
    *
-   * @param exporter â€?the sink that receives structured log messages.
+   * @param exporter â€”the sink that receives structured log messages.
    * @returns a disposer that removes the exporter.
    */
   exporter(exporter: Exporter) {
